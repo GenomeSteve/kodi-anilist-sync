@@ -2,7 +2,11 @@ name: Build Kodi repository
 on:
   push:
     branches: [main]
-    paths: [bootstrap_payload.b64, .github/workflows/build.yml]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'upgrade_v020.b64'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
 permissions:
   contents: write
@@ -11,46 +15,62 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Extract source and assemble Kodi repository
+      - name: Apply initial v0.2 upgrade once
         run: |
           python3 - <<'PYCODE'
-          import base64, io, tarfile, zipfile, os, hashlib, shutil
+          import base64, io, tarfile
+          from pathlib import Path
+          root = Path.cwd()
+          xml = (root / 'src/script.watchnixtoons.anilist/addon.xml').read_text()
+          if 'version="0.1.0"' not in xml:
+              print('Already upgraded; leaving source code untouched.')
+          else:
+              payload = base64.b64decode((root/'upgrade_v020.b64').read_text().strip(), validate=True)
+              with tarfile.open(fileobj=io.BytesIO(payload), mode='r:gz') as archive:
+                  for member in archive.getmembers():
+                      target = (root/member.name).resolve()
+                      if not target.is_relative_to(root.resolve()) or not member.isfile():
+                          raise ValueError('Unsafe upgrade entry')
+                  archive.extractall(root, filter='data')
+              assert 'version="0.2.0"' in (root/'src/script.watchnixtoons.anilist/addon.xml').read_text()
+              print('Installed Kodi sync v0.2 source')
+          PYCODE
+      - name: Test and assemble Kodi repository
+        run: |
+          python3 -m unittest discover -s tests -v
+          python3 - <<'PYCODE'
+          import hashlib, zipfile, shutil
           from pathlib import Path
           from xml.etree import ElementTree as ET
           root = Path.cwd()
-          archive = base64.b64decode((root/'bootstrap_payload.b64').read_text().strip(), validate=True)
-          with tarfile.open(fileobj=io.BytesIO(archive), mode='r:gz') as tar:
-              for m in tar.getmembers():
-                  target = (root / m.name).resolve()
-                  if not target.is_relative_to(root.resolve()) or not m.isfile():
-                      raise ValueError('Unsafe archive entry')
-              tar.extractall(root, filter='data')
-          script_id='script.watchnixtoons.anilist'
-          repo_id='repository.genomesteve.anilist'
-          def makezip(name,version):
-              src=root/'src'/name
-              zdir=root/'zips'/name
-              zdir.mkdir(parents=True,exist_ok=True)
-              target=zdir/(name+'-'+version+'.zip')
-              with zipfile.ZipFile(target,'w',zipfile.ZIP_DEFLATED,compresslevel=9,strict_timestamps=False) as z:
+          addon_names = ['repository.genomesteve.anilist', 'script.watchnixtoons.anilist']
+          addon_xmls = []
+          for name in addon_names:
+              src = root / 'src' / name
+              addon = ET.parse(src / 'addon.xml').getroot()
+              assert addon.get('id') == name
+              version = addon.attrib['version']
+              addon_xmls.append(ET.tostring(addon, encoding='unicode'))
+              target = root/'zips'/name/(name+'-'+version+'.zip')
+              target.parent.mkdir(parents=True, exist_ok=True)
+              for stale in target.parent.glob(name+'-*.zip'):
+                  stale.unlink()
+              with zipfile.ZipFile(target, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as z:
                   for file in sorted(src.rglob('*')):
-                      if file.is_file():
-                          z.write(file,file.relative_to(root/'src').as_posix())
+                      if file.is_file() and '__pycache__' not in file.parts and file.suffix != '.pyc':
+                          z.write(file, file.relative_to(root/'src').as_posix())
               with zipfile.ZipFile(target) as z:
                   assert z.testzip() is None and name+'/addon.xml' in z.namelist()
-              return target
-          repo_zip=makezip(repo_id,'1.0.0')
-          makezip(script_id,'0.1.0')
-          shutil.copyfile(repo_zip,root/repo_zip.name)
-          addon_text='\n'.join('\n'.join(x for x in (root/'src'/n/'addon.xml').read_text().splitlines() if not x.lstrip().startswith('<?xml')) for n in [repo_id,script_id])
-          idx='<?xml version="1.0" encoding="UTF-8"?>\n<addons>\n'+addon_text+'\n</addons>\n'
+              if name.startswith('repository.'):
+                  shutil.copyfile(target, root/target.name)
+          idx = '<?xml version="1.0" encoding="UTF-8"?>\n<addons>\n' + '\n'.join(addon_xmls) + '\n</addons>\n'
           ET.fromstring(idx)
           (root/'zips'/'addons.xml').write_text(idx)
           (root/'zips'/'addons.xml.md5').write_text(hashlib.md5(idx.encode()).hexdigest())
           PYCODE
-      - name: Commit Kodi sources and packages
+      - name: Commit tested source and packages
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/ zips/ README.md index.html .nojekyll repository.genomesteve.anilist-1.0.0.zip
-          git diff --staged --quiet || (git commit -m 'Publish Kodi repository and AniList sync add-on' && git push)
+          git add src/ tests/ zips/ README.md repository.genomesteve.anilist-1.0.0.zip
+          git diff --staged --quiet || (git commit -m 'Release WatchNixtoons2 AniList Sync v0.2.0' && git push)
