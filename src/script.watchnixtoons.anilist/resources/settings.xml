@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings version="1">
+  <section id="script.watchnixtoons.anilist">
+    <category id="general" label="General">
+      <group id="1">
+        <setting id="enabled" type="boolean" label="Synchronise episodes">
+          <level>4</level><default>true</default><control type="toggle"/>
+        </setting>
+        <setting id="threshold" type="string" label="Playback percentage threshold">
+          <level>4</level><default>85</default>
+          <control type="edit" format="string"/>
+        </setting>
+        <setting id="client_id" type="string" label="AniList application client ID">
+          <level>4</level><default/><constraints><allowempty>true</allowempty></constraints>
+          <control type="edit" format="string"/>
+        </setting>
+        <setting id="token" type="string" label="AniList private access token">
+          <level>4</level><default/><constraints><allowempty>true</allowempty></constraints>
+          <control type="edit" format="string"><hidden>true</hidden></control>
+        </setting>
+      </group>
+    </category>
+  </section>
+</settings>

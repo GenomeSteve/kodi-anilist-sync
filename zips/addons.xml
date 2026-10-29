@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addons>
+<addon id="repository.genomesteve.anilist" name="GenomeSteve Kodi Repository" version="1.0.0" provider-name="GenomeSteve">
+  <requires><import addon="xbmc.python" version="3.0.0" /></requires>
+  <extension point="xbmc.addon.repository">
+    <dir>
+      <info compressed="false">https://raw.githubusercontent.com/GenomeSteve/kodi-anilist-sync/main/zips/addons.xml</info>
+      <checksum>https://raw.githubusercontent.com/GenomeSteve/kodi-anilist-sync/main/zips/addons.xml.md5</checksum>
+      <datadir>https://raw.githubusercontent.com/GenomeSteve/kodi-anilist-sync/main/zips/</datadir>
+      <hashes>false</hashes>
+    </dir>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_GB">Install and update WatchNixtoons2 AniList Sync</summary>
+    <description lang="en_GB">Personal repository for a lightweight, experimental WatchNixtoons2 to AniList progress synchroniser.</description>
+    <platform>all</platform>
+    <license>MIT</license>
+  </extension>
+</addon>
+<addon id="script.watchnixtoons.anilist" name="WatchNixtoons2 AniList Sync" version="0.1.0" provider-name="Community experimental">
+  <requires>
+    <import addon="xbmc.python" version="3.0.0" />
+  </requires>
+  <extension point="xbmc.python.script" library="default.py">
+    <provides>executable</provides>
+  </extension>
+  <extension point="xbmc.service" library="service.py" />
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_GB">Synchronise completed WatchNixtoons2 anime episodes to AniList.</summary>
+    <description lang="en_GB">A lightweight, opt-in experimental background tracker. Verifies WatchNixtoons2 playback and a completion threshold, then updates AniList progress. Ambiguous anime mappings require review. Does not modify WatchNixtoons2 or access Real-Debrid/Trakt credentials.</description>
+    <language>en</language>
+    <platform>all</platform>
+    <license>MIT</license>
+  </extension>
+</addon>
+</addons>
