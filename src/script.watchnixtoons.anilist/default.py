@@ -257,10 +257,10 @@ def run():
                                                      if v['key'] not in mappings}),
                 'View/change anime mappings (%s)' % len(mappings),
                 'Set watched threshold (%s%%)' % (ADDON.getSetting('threshold') or '85'),
-                'View diagnostics', 'Test AniList authorisation', 'Exit'
+                'View diagnostics', 'Test AniList authorisation', 'Historical watched import (manual)', 'Exit'
             ]
             selected = DIALOG.select(TITLE, choices)
-            if selected in (-1, 7):
+            if selected in (-1, 8):
                 return
             if selected == 0:
                 ADDON.setSetting('enabled', 'false' if enabled else 'true')
@@ -279,6 +279,9 @@ def run():
                     ok('Enter a number between 50 and 95.')
             elif selected == 5:
                 diagnostics()
+            elif selected == 7:
+                from historical_ui import run as history_import_run
+                history_import_run(choose_anime)
             elif selected == 6:
                 if not token:
                     ok('Not connected. Open AniList account first.')

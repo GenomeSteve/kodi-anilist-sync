@@ -1,0 +1,32 @@
+name: Regression tests (Kodi historical import)
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Unit and integration regression tests
+        run: python -W error::ResourceWarning -m unittest discover -s tests -v
+      - name: Compile candidate and verify XML metadata
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree as ET
+          import ast
+          base = Path('src/script.watchnixtoons.anilist')
+          for p in base.glob('*.py'):
+              ast.parse(p.read_text(encoding='utf8'), filename=str(p))
+          addon = ET.parse(base/'addon.xml').getroot()
+          assert addon.attrib['version'] == '0.3.0'
+          assert addon.attrib['id'] == 'script.watchnixtoons.anilist'
+          PY
