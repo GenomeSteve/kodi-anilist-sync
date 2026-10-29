@@ -32,7 +32,7 @@ jobs:
               zdir=root/'zips'/name
               zdir.mkdir(parents=True,exist_ok=True)
               target=zdir/(name+'-'+version+'.zip')
-              with zipfile.ZipFile(target,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as z:
+              with zipfile.ZipFile(target,'w',zipfile.ZIP_DEFLATED,compresslevel=9,strict_timestamps=False) as z:
                   for file in sorted(src.rglob('*')):
                       if file.is_file():
                           z.write(file,file.relative_to(root/'src').as_posix())
