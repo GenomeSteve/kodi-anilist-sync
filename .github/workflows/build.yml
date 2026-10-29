@@ -1,0 +1,56 @@
+name: Build Kodi repository
+on:
+  push:
+    branches: [main]
+    paths: [bootstrap_payload.b64, .github/workflows/build.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract source and assemble Kodi repository
+        run: |
+          python3 - <<'PYCODE'
+          import base64, io, tarfile, zipfile, os, hashlib, shutil
+          from pathlib import Path
+          from xml.etree import ElementTree as ET
+          root = Path.cwd()
+          archive = base64.b64decode((root/'bootstrap_payload.b64').read_text().strip(), validate=True)
+          with tarfile.open(fileobj=io.BytesIO(archive), mode='r:gz') as tar:
+              for m in tar.getmembers():
+                  target = (root / m.name).resolve()
+                  if not target.is_relative_to(root.resolve()) or not m.isfile():
+                      raise ValueError('Unsafe archive entry')
+              tar.extractall(root, filter='data')
+          script_id='script.watchnixtoons.anilist'
+          repo_id='repository.genomesteve.anilist'
+          def makezip(name,version):
+              src=root/'src'/name
+              zdir=root/'zips'/name
+              zdir.mkdir(parents=True,exist_ok=True)
+              target=zdir/(name+'-'+version+'.zip')
+              with zipfile.ZipFile(target,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as z:
+                  for file in sorted(src.rglob('*')):
+                      if file.is_file():
+                          z.write(file,file.relative_to(root/'src').as_posix())
+              with zipfile.ZipFile(target) as z:
+                  assert z.testzip() is None and name+'/addon.xml' in z.namelist()
+              return target
+          repo_zip=makezip(repo_id,'1.0.0')
+          makezip(script_id,'0.1.0')
+          shutil.copyfile(repo_zip,root/repo_zip.name)
+          addon_text='\n'.join('\n'.join(x for x in (root/'src'/n/'addon.xml').read_text().splitlines() if not x.lstrip().startswith('<?xml')) for n in [repo_id,script_id])
+          idx='<?xml version="1.0" encoding="UTF-8"?>\n<addons>\n'+addon_text+'\n</addons>\n'
+          ET.fromstring(idx)
+          (root/'zips'/'addons.xml').write_text(idx)
+          (root/'zips'/'addons.xml.md5').write_text(hashlib.md5(idx.encode()).hexdigest())
+          PYCODE
+      - name: Commit Kodi sources and packages
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/ zips/ README.md index.html .nojekyll repository.genomesteve.anilist-1.0.0.zip
+          git diff --staged --quiet || (git commit -m 'Publish Kodi repository and AniList sync add-on' && git push)
