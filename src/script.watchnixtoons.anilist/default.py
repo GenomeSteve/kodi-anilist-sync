@@ -10,11 +10,13 @@ import xbmcvfs
 from core import parse_token
 from anilist_api import viewer, search, details, APIError
 from storage import read_json, write_json
+from watched_db import recent_watched
 
 ADDON = xbmcaddon.Addon('script.watchnixtoons.anilist')
 PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo('profile'))
 STATE = os.path.join(PROFILE, 'state.json')
 MAPPINGS = os.path.join(PROFILE, 'mappings.json')
+DIAGNOSTICS = os.path.join(PROFILE, 'diagnostics.json')
 DIALOG = xbmcgui.Dialog()
 TITLE = 'WatchNixtoons2 -> AniList'
 
@@ -209,19 +211,37 @@ def edit_mappings():
 
 def diagnostics():
     state, mappings = get_data()
-    service_file = []
+    diag = read_json(DIAGNOSTICS, {})
+    sources = []
     for source in ('plugin.video.watchnixtoons2.kodi19', 'plugin.video.watchnixtoons2'):
         p = xbmcvfs.translatePath('special://profile/addon_data/%s/recently_watched.dat' % source)
-        service_file.append('%s: %s' % (source, 'FOUND' if os.path.isfile(p) else 'Not found'))
-    DIALOG.textviewer('Tracking status',
-        'AniList: %s\nSync: %s\nThreshold: %s%%\nQueued episodes: %s\nCompleted events: %s\nMappings: %s\n\nWatchNixtoons2 history sources:\n%s\n\n'
-        'The service only checks a WatchNixtoons2 history update around the start of playback. '
-        'Its source metadata must identify an episode. Playback must reach the threshold.\n\n'
-        'For troubleshooting enable Kodi debug logging, then inspect kodi.log for [WNT2 AniList Sync].' % (
-            'Connected (token stored)' if ADDON.getSetting('token') else 'Not connected',
+        sources.append('%s: %s' % (source, 'FOUND' if os.path.isfile(p) else 'Not found'))
+    db_status = 'No database located'
+    try:
+        _dirs, files = xbmcvfs.listdir('special://database')
+        dbs = sorted((f for f in files if f.startswith('MyVideos') and f.endswith('.db')),
+                     key=lambda f: int(''.join(c for c in f if c.isdigit()) or 0), reverse=True)
+        if dbs:
+            path = xbmcvfs.translatePath('special://database/' + dbs[0])
+            events = recent_watched(path, limit=30)
+            db_status = '%s: %s recognised recent watched episode(s)' % (dbs[0], len(events))
+            if events:
+                last = events[0]
+                db_status += '\nMost recent: %s, episode %s' % (last['title'], last['episode'])
+    except Exception as exc:
+        db_status = 'Could not read watched database: %s' % type(exc).__name__
+    DIALOG.textviewer('Tracking diagnostics',
+        'AniList: %s\nSync: %s\nThreshold: %s%%\nQueued episodes: %s\nSynced or ignored events: %s\nMappings: %s\n'
+        'Last service status: %s\nDetails: %s\nUpdated: %s\n\n'
+        'Kodi watched database: %s\n\nWatchNixtoons2 histories:\n%s\n\n'
+        'If a detected episode is queued but not synced, use Review unmatched series. '
+        'If the last service status is missing, restart Kodi to start the background service. '
+        'Logs are tagged [WNT2 AniList Sync].' % (
+            'Connected (token present)' if ADDON.getSetting('token') else 'Not connected',
             'On' if ADDON.getSetting('enabled') != 'false' else 'Off',
             ADDON.getSetting('threshold') or '85', len(state.get('pending', {})),
-            len(state.get('done', {})), len(mappings), '\n'.join(service_file)))
+            len(state.get('done', {})), len(mappings), diag.get('stage', 'No service status yet'),
+            diag.get('detail', 'None'), diag.get('updated', 'Unknown'), db_status, '\n'.join(sources)))
 
 
 def run():
@@ -237,10 +257,10 @@ def run():
                                                      if v['key'] not in mappings}),
                 'View/change anime mappings (%s)' % len(mappings),
                 'Set watched threshold (%s%%)' % (ADDON.getSetting('threshold') or '85'),
-                'View diagnostics', 'Exit'
+                'View diagnostics', 'Test AniList authorisation', 'Exit'
             ]
             selected = DIALOG.select(TITLE, choices)
-            if selected in (-1, 6):
+            if selected in (-1, 7):
                 return
             if selected == 0:
                 ADDON.setSetting('enabled', 'false' if enabled else 'true')
@@ -259,6 +279,15 @@ def run():
                     ok('Enter a number between 50 and 95.')
             elif selected == 5:
                 diagnostics()
+            elif selected == 6:
+                if not token:
+                    ok('Not connected. Open AniList account first.')
+                else:
+                    try:
+                        account = viewer(token)
+                        ok('AniList API working. Signed in as %s.' % account.get('name', 'Unknown'))
+                    except APIError as exc:
+                        ok('AniList API error: %s' % exc)
         except (ValueError, OSError) as exc:
             ok('Could not read or write tracking data: %s' % exc)
             return

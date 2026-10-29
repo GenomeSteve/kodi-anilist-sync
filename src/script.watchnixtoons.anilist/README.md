@@ -1,4 +1,4 @@
-# WatchNixtoons2 → AniList Sync 0.1.0
+# WatchNixtoons2 → AniList Sync 0.2.0
 
 **Experimental Kodi 21 / Fire TV Python 3 add-on. Not tested on an actual Fire TV Stick.**
 
@@ -17,7 +17,7 @@ A separate, small background service. It does not replace, patch or configure Wa
 
 ## Installation
 
-1. Transfer **script.watchnixtoons.anilist-0.1.0.zip** to a storage location Kodi can browse on your Firestick (for example, a trusted SMB shared folder on your home network or a local Downloads folder). It does not need extracting.
+1. Transfer **script.watchnixtoons.anilist-0.2.0.zip** to a storage location Kodi can browse on your Firestick (for example, a trusted SMB shared folder on your home network or a local Downloads folder). It does not need extracting.
 2. Kodi → Settings → Add-ons → Install from zip file → select the ZIP.
 3. Open Kodi → Add-ons → Program add-ons → **WatchNixtoons2 AniList Sync**.
 4. Check **View diagnostics**. The WatchNixtoons2 history file should say `FOUND` *after you have played an episode once*.
@@ -70,3 +70,25 @@ AniList tokens are valid for about one year and give broad access to account dat
 - AniList progress mutation: https://docs.anilist.co/guide/graphql/mutations
 
 This software is supplied as-is, for tracking media you are authorised to watch.
+
+
+## Version 0.2.0: reliable watched fallback
+
+If WatchNixtoons2 does not give Kodi an episode number (a known issue in the
+upstream default episode-list mode), the background service also reads the
+Kodi **MyVideos** database *read-only*. It only recognises recently marked
+watched entries with an original WatchNixtoons2 `actionResolve` URL that
+unambiguously includes an episode number. No database edits are made.
+
+After updating from v0.1.0, restart Kodi so the background service reloads.
+Then open Program add-ons → WatchNixtoons2 AniList Sync → **View diagnostics**.
+It now shows recent recognised Kodi watched records, the last service status,
+queued events and mappings. Choose **Review unmatched series** when an episode
+is queued but not yet mapped. Use **Test AniList authorisation** to verify the
+stored token. Avoid sharing your AniList access token or kodi.log without
+redacting credentials.
+
+A newly watched episode may take up to around a minute to sync. A watched tick
+normally means Kodi's own playback watched threshold was reached, which may
+be different from the synchroniser's configured 85% threshold. No automatic
+retroactive import of your entire watching history is performed.

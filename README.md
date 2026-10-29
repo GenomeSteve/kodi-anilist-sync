@@ -1,7 +1,7 @@
 # WatchNixtoons2 → AniList Sync · Personal Kodi Repository
 
 **Owner:** GenomeSteve  
-**Version:** 0.1.0 (experimental, offline-tested only)  
+**Version:** 0.2.0 (experimental, offline-tested only)  
 **Target:** Kodi 21 Omega / Amazon Fire TV Stick 4K Gen 2.
 
 This repo hosts an experimental Kodi background tracker that watches WatchNixtoons2 episodes and syncs completed anime episode counts to AniList, without modifying WatchNixtoons2 or using Trakt / Real-Debrid credentials.
@@ -29,3 +29,13 @@ This repo hosts an experimental Kodi background tracker that watches WatchNixtoo
 - Kodi's repository add-on uses HTTPS GitHub **raw** URLs for its update feed; GitHub Pages is only used to make the initial ZIP easy to browse in Kodi.
 
 **Important:** This is untested against a real Firestick or AniList account. Back up Kodi first. Tokens are stored locally in Kodi settings and must never be committed to GitHub.
+
+
+## Version 0.2.0 fix
+
+WatchNixtoons2 can omit the episode number in its default list display; the
+synchroniser now also reads recent watched ticks from Kodi's video database
+(read-only), and provides a diagnostics view plus an AniList connection test.
+Restart Kodi after the repository installs the update. It may take up to a
+minute to process new watched events; confirm ambiguous anime titles under
+"Review unmatched series". No local credentials are committed to GitHub.
