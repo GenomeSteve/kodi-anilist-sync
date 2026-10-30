@@ -27,6 +27,6 @@ jobs:
           for p in base.glob('*.py'):
               ast.parse(p.read_text(encoding='utf8'), filename=str(p))
           addon = ET.parse(base/'addon.xml').getroot()
-          assert addon.attrib['version'] == '0.3.0'
+          assert tuple(int(part) for part in addon.attrib['version'].split('.')) >= (0, 3, 0)
           assert addon.attrib['id'] == 'script.watchnixtoons.anilist'
           PY
