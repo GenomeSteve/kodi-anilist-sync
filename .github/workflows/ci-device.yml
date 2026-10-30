@@ -55,7 +55,7 @@ jobs:
           assert routines(original(root+'service.py')) == routines(Path(root+'service.py').read_text())
           def settings(xml):
               root = ET.fromstring(xml)
-              return {setting.get('id'): ET.tostring(setting)
+              return {setting.get('id'): ET.tostring(setting).strip()
                       for setting in root.iter('setting')}
           baseline = settings(original(root+'resources/settings.xml'))
           candidate = settings(Path(root+'resources/settings.xml').read_text())
