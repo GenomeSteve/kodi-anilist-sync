@@ -1,0 +1,44 @@
+name: Cross-device sync regression tests
+on:
+  push:
+    branches: [feature/cross-device-watched-v0.4.0]
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - '.github/workflows/ci-device.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regressions:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Run all historical and live-sync regressions
+        run: python -m unittest discover -s tests -v
+      - name: Compile and validate Kodi metadata
+        run: |
+          python -m compileall -q src/script.watchnixtoons.anilist tests
+          python - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree as ET
+          a=ET.parse('src/script.watchnixtoons.anilist/addon.xml').getroot()
+          assert a.attrib['version']=='0.4.0'
+          assert a.attrib['id']=='script.watchnixtoons.anilist'
+          PY
+      - name: Check background live sync is byte-for-byte unchanged
+        run: |
+          for file in service.py watched_db.py core.py anilist_api.py storage.py history_import.py historical_ui.py; do
+            git diff --exit-code origin/main -- "src/script.watchnixtoons.anilist/$file"
+          done
+          git diff --exit-code origin/main -- src/script.watchnixtoons.anilist/resources/settings.xml
