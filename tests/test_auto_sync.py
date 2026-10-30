@@ -83,6 +83,24 @@ class Background(unittest.TestCase):
                                   {'at':500,'device':'A','counter':1})
         self.engine.private_sync()
         self.assertEqual(self.kodi.resumes[URL],{'position':120.,'total':1200.})
+    def test_remote_never_overwrites_unverified_existing_local_resume(self):
+        self.kodi.resumes[URL] = {'position': 350, 'total': 1200}
+        self.hub.value = add_resume(blank_state(), episode_id(URL), 120, 1200,
+                                    {'at': 500, 'device': 'A', 'counter': 1})
+        self.engine.private_sync()
+        self.assertEqual(self.kodi.resumes[URL]['position'], 350)
+        self.assertFalse(any('resume' in call['params'] and
+                             call['method'] == 'Files.SetFileDetails'
+                             for call in self.kodi.calls))
+
+    def test_unverified_bookmark_stays_when_observed_but_undated(self):
+        self.kodi.resumes[URL] = {'position': 350, 'total': 1200}
+        self.engine.state['observed'][episode_id(URL)] = {'signature': '350/1200', 'at': 0}
+        self.hub.value = add_resume(blank_state(), episode_id(URL), 120, 1200,
+                                    {'at': 500, 'device': 'A', 'counter': 1})
+        self.engine.private_sync()
+        self.assertEqual(self.kodi.resumes[URL]['position'], 350)
+
     def test_newer_remote_rewind_replaces_old_local_bookmark(self):
         self.kodi.resumes[URL]={'position':350,'total':1200}
         self.engine.state['observed'][episode_id(URL)]={'signature':'350/1200','at':100}

@@ -209,9 +209,18 @@ class BackgroundEngine:
                 previous = {'signature': previous, 'at': 0}
             # The latest *event* wins, even if its time-in-video is smaller.
             # A locally active bookmark is protected if its observed event is newer.
-            if point['event']['at'] <= previous.get('at', 0):
+            # If Kodi already has a meaningful bookmark but we have no
+            # timestamped observation of it, its age is unknown. Never replace
+            # it with a remote bookmark merely because the remote event has
+            # a timestamp. The next genuine local position change can create
+            # a trustworthy observation and be merged normally.
+            previous_at = float(previous.get('at') or 0)
+            if already and previous_at <= 0:
                 continue
-            fresh = incoming_resume(0, point,
+            if point['event']['at'] <= previous_at:
+                continue
+            fresh = incoming_resume(0 if previous_at > 0 else
+                                    (already or {}).get('position', 0), point,
                                     watched=record['playcount'] > 0,
                                     rewatch=self.addon.getSetting('rewatch_episode') == key)
             if fresh:
