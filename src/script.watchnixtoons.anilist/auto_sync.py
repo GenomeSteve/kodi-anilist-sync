@@ -11,7 +11,7 @@ import uuid
 
 from anilist_api import details
 from core import mapping_key, source_matches
-from device_sync import (DeviceSyncError, apply_pull_plan, listing_records,
+from device_sync import (DeviceSyncError, apply_pull_plan,
                          local_records, make_pull_plan, merge_records, rpc_call)
 from history_import import locate_myvideos
 from private_store import GitHubStore, StoreError
@@ -77,14 +77,13 @@ class BackgroundEngine:
         return result
 
     def known_episodes(self, include_listings=False):
-        records = self.records()
-        if include_listings:
-            for key, (url, plugin_id) in list(self.recent_series().items())[:8]:
-                try:
-                    records.extend(listing_records(self.xbmc.executeJSONRPC, url, plugin_id))
-                except (DeviceSyncError, OSError):
-                    pass
-        return merge_records(records)
+        """Read indexed Kodi records only; never invoke WNT2 from a worker.
+
+        Files.GetDirectory(plugin://...) can execute WatchNixtoons2 and
+        unexpectedly trigger site requests and user-visible errors.
+        Manual per-series restore remains available separately.
+        """
+        return merge_records(self.records())
 
     def pull_anilist(self):
         token = self.addon.getSetting('token').strip()
@@ -92,7 +91,7 @@ class BackgroundEngine:
             self.note('AniList not connected')
             return
         mappings = read_json(self.mappings_path, {})
-        records = self.known_episodes(include_listings=True)
+        records = self.known_episodes(include_listings=False)
         by_key = {}
         for record in records:
             by_key.setdefault(record['key'], []).append(record)
@@ -139,7 +138,7 @@ class BackgroundEngine:
         remote, _sha = store.read()
         pending = self.state['pending']
         observed = self.state['observed']
-        records = self.known_episodes(include_listings=True)
+        records = self.known_episodes(include_listings=False)
         local = {episode_id(r['file']): r for r in records if episode_id(r['file'])}
         # Publish actual watched *sets*, including cartoons. This never relies on
         # AniList's contiguous episode count, and can't clear remote watched ticks.

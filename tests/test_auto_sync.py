@@ -54,6 +54,18 @@ class Background(unittest.TestCase):
         self.patcher.start()
         self.engine.known_episodes=lambda include_listings=False:[self.row]
     def tearDown(self):self.patcher.stop();self.tmp.cleanup()
+    def test_background_never_requests_plugin_episode_directory(self):
+        # Bypass setUp's abbreviated known_episodes fixture and exercise the
+        # real implementation. A plugin directory scan must never happen.
+        self.engine.known_episodes = auto_sync.BackgroundEngine.known_episodes.__get__(self.engine)
+        self.engine.records = lambda: [self.row]
+        self.engine.recent_series = lambda: {'naruto|s1': ('/naruto', 'plugin.video.watchnixtoons2')}
+        with patch.object(auto_sync, 'listing_records', create=True,
+                          side_effect=AssertionError('Background invoked WNT2!')):
+            self.engine.pull_anilist()
+            self.engine.private_sync()
+        self.assertFalse(any(msg['method']=='Files.GetDirectory' for msg in self.kodi.calls))
+
     def test_default_no_background_requests(self):
         self.engine.tick(20000,False)
         self.assertEqual(self.hub.writes,[])
