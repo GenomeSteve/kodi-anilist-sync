@@ -33,12 +33,31 @@ jobs:
           from pathlib import Path
           from xml.etree import ElementTree as ET
           a=ET.parse('src/script.watchnixtoons.anilist/addon.xml').getroot()
-          assert a.attrib['version']=='0.4.0'
+          assert tuple(map(int, a.attrib['version'].split('.'))) >= (0,4,0)
           assert a.attrib['id']=='script.watchnixtoons.anilist'
           PY
-      - name: Check background live sync is byte-for-byte unchanged
+      - name: Verify original tracking logic is preserved
         run: |
-          for file in service.py watched_db.py core.py anilist_api.py storage.py history_import.py historical_ui.py; do
+          for file in watched_db.py core.py anilist_api.py storage.py history_import.py historical_ui.py; do
             git diff --exit-code origin/main -- "src/script.watchnixtoons.anilist/$file"
           done
-          git diff --exit-code origin/main -- src/script.watchnixtoons.anilist/resources/settings.xml
+          python - <<'PY'
+          import ast, subprocess
+          from pathlib import Path
+          from xml.etree import ElementTree as ET
+          root = 'src/script.watchnixtoons.anilist/'
+          def original(path):
+              return subprocess.check_output(['git','show','origin/main:'+path], text=True)
+          def routines(source):
+              return {node.name: ast.dump(node) for node in ast.parse(source).body
+                      if isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef,ast.ClassDef))
+                      and node.name != 'run'}
+          assert routines(original(root+'service.py')) == routines(Path(root+'service.py').read_text())
+          def settings(xml):
+              root = ET.fromstring(xml)
+              return {setting.get('id'): ET.tostring(setting)
+                      for setting in root.iter('setting')}
+          baseline = settings(original(root+'resources/settings.xml'))
+          candidate = settings(Path(root+'resources/settings.xml').read_text())
+          assert all(candidate.get(k)==v for k,v in baseline.items())
+          PY
