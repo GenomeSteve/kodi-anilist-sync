@@ -1,6 +1,6 @@
 # WatchNixtoons2 → AniList Sync v0.5.0 beta
 
-**Development status:** 164 local automated tests passing; device-level resume sync NOT yet verified. Do not promote to the normal Kodi repository until two-Firestick smoke tests pass.
+**Development status:** 170 automated tests passing on Python 3.11 and 3.12 in GitHub Actions; device-level resume sync NOT yet verified. Do not promote to the normal Kodi repository until two-Firestick smoke tests pass.
 
 ## New features
 
