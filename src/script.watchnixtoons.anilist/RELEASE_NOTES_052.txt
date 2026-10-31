@@ -1,0 +1,9 @@
+v0.5.2 experimental cross-device sync beta
+
+- Passive selected-episode recognition while browsing WatchNixtoons2: never launches addon episode listings or requests streaming websites.
+- Attempts to restore a known remote bookmark as soon as Kodi exposes the selected episode. If Kodi has no episode record yet, seeks on playback only after recent source verification and a strict duration check.
+- Separate uploaded/downloaded watched and resume counters, last activity timestamps, and error diagnostics.
+- Active playback can record the exact previously selected WNT2 episode, avoiding missing metadata and supporting two-way updates.
+- Preserves private GitHub repository and existing settings/data. Does not touch the SQLite video database directly.
+
+Known limitation: Kodi skins or WatchNixtoons2 versions that do not expose an exact selected plugin URL, or do not update recently_watched.dat, may still require a first-play prime. Kodi's list marker may not update until browsing refresh. Test on Firestick 2 before broad rollout.

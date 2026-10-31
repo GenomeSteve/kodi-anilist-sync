@@ -96,7 +96,19 @@ def run():
         elif choice == 6:
             profile = xbmcvfs.translatePath(ADDON.getAddonInfo('profile'))
             state = read_json(os.path.join(profile, 'background.json'), {})
-            DIALOG.ok(TITLE, 'Last status: %s\nLocal pending private changes: %s\n'
-                      'Private viewing data is never stored in your public repository.' %
-                      (state.get('last_status', 'No sync yet'),
-                       len(state.get('pending', {}).get('resumes', {}))))
+            stats = state.get('stats', {})
+            DIALOG.ok(TITLE,
+                'Last operation: %s\n'
+                'UPLOADED TO GITHUB: %s watched ticks; %s resume points\n'
+                'DOWNLOADED TO KODI: %s watched ticks; %s resume points\n'
+                'Episodes recognised while browsing: %s\n'
+                'Last upload: %s | Last download: %s\n'
+                'Pending resume uploads: %s\n'
+                'Last sync error: %s' %
+                (state.get('last_status', 'No sync yet'),
+                 stats.get('watched_uploaded', 0), stats.get('resumes_uploaded', 0),
+                 stats.get('watched_downloaded', 0), stats.get('resumes_downloaded', 0),
+                 stats.get('episodes_recognised', 0),
+                 stats.get('last_upload', 'Never'), stats.get('last_download', 'Never'),
+                 len(state.get('pending', {}).get('resumes', {})),
+                 stats.get('last_error', 'None')))
