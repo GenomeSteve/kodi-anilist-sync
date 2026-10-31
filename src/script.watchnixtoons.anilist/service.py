@@ -249,7 +249,10 @@ def run():
         try:
             background.tick(time.time(), tracker.player.isPlayingVideo())
         except Exception as exc:
-            log('Optional background sync error: %s' % type(exc).__name__, xbmc.LOGWARNING)
+            kind = type(exc).__name__
+            background.state['stats']['last_error'] = '%s (%s)' % (kind, time.strftime('%H:%M:%S'))
+            background.note('Private sync failed: %s; retrying safely' % kind)
+            log('Optional background sync error: %s' % kind, xbmc.LOGWARNING)
     tracker.note('Service running', 'Waiting for WatchNixtoons2 watched episodes')
     while not monitor.abortRequested():
         try:

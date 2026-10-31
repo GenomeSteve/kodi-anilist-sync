@@ -11,6 +11,7 @@ import uuid
 
 from anilist_api import details
 from core import mapping_key, source_matches
+from passive_resume import selected_episode, verified_source
 from device_sync import (DeviceSyncError, apply_pull_plan,
                          local_records, make_pull_plan, merge_records, rpc_call)
 from history_import import locate_myvideos
@@ -42,6 +43,11 @@ class BackgroundEngine:
         self.state.setdefault('observed', {})
         self.state.setdefault('pending', blank_state())
         self.state.setdefault('last_status', 'Background features off')
+        self.state.setdefault('stats', {})
+        self._remote = None
+        self._selected = None
+        self._selected_attempt = None
+        self._playback_restored = None
         write_json(self.state_path, self.state)
 
     def enabled(self, key):
@@ -50,6 +56,96 @@ class BackgroundEngine:
     def note(self, value):
         self.state['last_status'] = value[:180]
         write_json(self.state_path, self.state)
+
+    def metric(self, field, count=1, direction=None):
+        stats = self.state['stats']
+        stats[field] = int(stats.get(field, 0)) + count
+        if direction:
+            stats['last_' + direction] = time.strftime('%Y-%m-%d %H:%M:%S')
+        write_json(self.state_path, self.state)
+
+    def observe_selected(self, now):
+        """Passively identify a WNT2 episode currently highlighted in Kodi.
+
+        No plugin directory calls. On Kodi builds where a plugin URL is not yet
+        a database file, keep the exact selection for a verified seek on start.
+        """
+        url = selected_episode(self.xbmc)
+        if not url:
+            return
+        key = episode_id(url)
+        if not self._selected or self._selected['url'] != url:
+            self._selected = {'url': url, 'key': key, 'at': now}
+            self._selected_attempt = None
+            self._playback_restored = None
+            self.metric('episodes_recognised')
+        point = (self._remote or {}).get('resumes', {}).get(key)
+        if not point or key in (self._remote or {}).get('watched', {}):
+            return
+        # Retry a failed early bookmark after the user returns to this screen,
+        # but don't hammer Kodi's video database every two seconds.
+        if self._selected_attempt and now - self._selected_attempt < 60:
+            return
+        self._selected_attempt = now
+        existing = self._bookmark(url)
+        if existing and existing['position'] > 30:
+            if abs(existing['position'] - point['position']) < 2:
+                self.state['observed'][key] = {
+                    'signature': '%s/%s' % (existing['position'], existing['total']),
+                    'at': point['event']['at']}
+                write_json(self.state_path, self.state)
+            return
+        fresh = incoming_resume(0, point, watched=False)
+        if not fresh:
+            return
+        try:
+            self._write_resume(url, fresh)
+            confirmed = self._bookmark(url)
+            if confirmed and abs(confirmed['position'] - fresh['position']) < 2:
+                self._playback_restored = key
+                self.state['observed'][key] = {
+                    'signature': '%s/%s' % (confirmed['position'], confirmed['total']),
+                    'at': point['event']['at']}
+                self.metric('resumes_downloaded', direction='download')
+                self.note('Browse restore confirmed for selected episode')
+        except DeviceSyncError:
+            # A brand-new WNT2 plugin URL may not exist in MyVideos yet.
+            # The verified on-playback seek is the safe fallback.
+            self.note('Episode recognised; bookmark will be checked on playback')
+
+    def apply_playback_resume(self, player, now):
+        """Resume a first-time episode only with exact, recently verified source.
+
+        The source is the user-selected WNT2 ListItem, never a CDN URL. Never
+        seek unrelated content, override an existing local bookmark, or jump a
+        currently playing episode that's already progressed normally.
+        """
+        if not self._selected or self._playback_restored == self._selected['key']:
+            return
+        point = (self._remote or {}).get('resumes', {}).get(self._selected['key'])
+        if not point or self._selected['key'] in (self._remote or {}).get('watched', {}):
+            return
+        if not verified_source(player, self._selected, self.vfs, now):
+            return
+        try:
+            current, total = float(player.getTime()), float(player.getTotalTime())
+            if current > 25 or current < 0 or total < 60:
+                return
+            if abs(total - float(point['total'])) > max(45, float(point['total']) * .12):
+                return
+            local = self._bookmark(self._selected['url'])
+            if local and abs(local['position'] - point['position']) > 3:
+                # A nontrivial local bookmark of unknown age belongs to Kodi.
+                return
+            player.seekTime(float(point['position']))
+            self._playback_restored = self._selected['key']
+            self.state['observed'][self._selected['key']] = {
+                'signature': '%s/%s' % (point['position'], point['total']),
+                'at': point['event']['at']}
+            self.metric('resumes_downloaded', direction='download')
+            self.note('Verified first-playback restore to %d seconds' % point['position'])
+        except (AttributeError, RuntimeError, ValueError, TypeError):
+            return
 
     def records(self):
         _dirs, files = self.vfs.listdir('special://database')
@@ -77,11 +173,13 @@ class BackgroundEngine:
         return result
 
     def known_episodes(self, include_listings=False):
-        """Read indexed Kodi records only; never invoke WNT2 from a worker.
+        """Indexed episodes only; background sync must never launch WNT2.
 
-        Files.GetDirectory(plugin://...) can execute WatchNixtoons2 and
-        unexpectedly trigger site requests and user-visible errors.
-        Manual per-series restore remains available separately.
+        Querying a plugin:// episode listing via Kodi Files.GetDirectory
+        launches WatchNixtoons2 and may produce pop-up errors or site load
+        while the user is browsing. The explicit manual restore tool still
+        offers episode-list discovery. Background work only uses Kodi's
+        existing video database and cannot request new upstream content.
         """
         return merge_records(self.records())
 
@@ -182,6 +280,16 @@ class BackgroundEngine:
         self.state['pending'] = proposed
         write_json(self.state_path, self.state)  # durable offline queue BEFORE network write
         updated = store.merge_and_write(proposed)
+        self._remote = updated
+        newly_sent = sum(1 for key in proposed['watched'] if key not in remote['watched']
+                         and key in updated['watched'])
+        newer_positions = sum(1 for key, point in proposed['resumes'].items()
+            if key in updated['resumes'] and updated['resumes'][key]['event'] == point['event']
+            and (key not in remote['resumes'] or remote['resumes'][key]['event'] != point['event']))
+        if newly_sent:
+            self.metric('watched_uploaded', newly_sent, 'upload')
+        if newer_positions:
+            self.metric('resumes_uploaded', newer_positions, 'upload')
         # Restore exact per-episode watched ticks from either Firestick, even
         # for cartoons that AniList cannot represent. Never clear watched marks.
         marked = 0
@@ -227,6 +335,10 @@ class BackgroundEngine:
                 observed[key] = {'signature': '%s/%s' % (fresh['position'], fresh['total']),
                                  'at': point['event']['at']}
                 applied += 1
+        if marked:
+            self.metric('watched_downloaded', marked, 'download')
+        if applied:
+            self.metric('resumes_downloaded', applied, 'download')
         self.state['pending'] = blank_state()
         self.state['observed'] = observed
         write_json(self.state_path, self.state)
@@ -271,25 +383,46 @@ class BackgroundEngine:
             return None
 
     def capture_playback(self, player, now):
-        if now - self.state.get('last_capture', 0) < 35:
+        if now - self.state.get('last_capture', 0) < 12:
             return
         self.state['last_capture'] = now
         match = self._verified_playback(player, now)
+        if not match and self._selected and verified_source(player, self._selected, self.vfs, now):
+            # The browser already gave us the exact dub/sub episode identity.
+            # This is still source-verified, never a guess from a CDN stream.
+            try:
+                point = validate_position(player.getTime(), player.getTotalTime())
+                match = (self._selected['key'], point) if point else None
+            except (AttributeError, RuntimeError, ValueError, TypeError):
+                pass
         if not match or not match[0]:
             return
         key, point = match
+        remote_point = (self._remote or {}).get('resumes', {}).get(key)
+        # Prevent an early restart at 0 from overwriting a newer remote
+        # bookmark before it can be applied. Genuine rewinds require replay
+        # beyond a full minute or an explicit rewatch selection.
+        if (remote_point and self._playback_restored != key and
+                point['position'] < remote_point['position'] and
+                now - (self._selected or {}).get('at', 0) < 120):
+            return
         self.state['counter'] += 1
         event = {'at': now, 'device': self.state['device'], 'counter': self.state['counter']}
         self.state['pending'] = add_resume(self.state['pending'], key,
             point['position'], point['total'], event,
             rewatch=(self.addon.getSetting('rewatch_episode') == key))
+        if key in self.state['pending']['resumes'] and self.state['pending']['resumes'][key]['event'] == event:
+            # This active observation has a trusted timestamp, so a newer
+            # event from the other Firestick can subsequently replace it.
+            self.state['observed'][key] = {
+                'signature': '%s/%s' % (point['position'], point['total']), 'at': now}
         # An in-progress event can be flushed without polling Kodi files. On
         # pause it remains at the latest captured point; stopping also saves a
         # normal Kodi resume bookmark for the subsequent idle reconciliation.
         write_json(self.state_path, self.state)
 
     def flush_playback(self, now):
-        if now - self.state.get('last_flush', 0) < 75:
+        if now - self.state.get('last_flush', 0) < 60:
             return
         self.state['last_flush'] = now
         write_json(self.state_path, self.state)
@@ -297,7 +430,13 @@ class BackgroundEngine:
             return
         store = GitHubStore(self.addon.getSetting('private_repo').strip(),
                             self.addon.getSetting('private_token').strip())
-        store.merge_and_write(self.state['pending'])
+        pending = self.state['pending']
+        uploaded = store.merge_and_write(pending)
+        changed = sum(1 for key, point in pending['resumes'].items()
+                      if key in uploaded['resumes'] and uploaded['resumes'][key]['event'] == point['event'])
+        self._remote = uploaded
+        if changed:
+            self.metric('resumes_uploaded', changed, 'upload')
         self.state['pending'] = blank_state()
         write_json(self.state_path, self.state)
 
@@ -306,7 +445,9 @@ class BackgroundEngine:
         # Never block the existing outgoing AniList tracker on network delays.
         if is_playing:
             if self.enabled('private_sync'):
-                self.capture_playback(self.xbmc.Player(), now)
+                player = self.xbmc.Player()
+                self.apply_playback_resume(player, now)
+                self.capture_playback(player, now)
                 self.flush_playback(now)
             return
         if self.enabled('auto_watched') and now - self.state['last_pull'] >= PULL_INTERVAL:
@@ -317,3 +458,5 @@ class BackgroundEngine:
             self.state['last_private'] = now
             write_json(self.state_path, self.state)
             self.private_sync()
+        if self.enabled('private_sync'):
+            self.observe_selected(now)

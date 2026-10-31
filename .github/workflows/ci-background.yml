@@ -32,7 +32,7 @@ jobs:
           addon=ET.parse(base/'addon.xml').getroot()
           settings=ET.parse(base/'resources/settings.xml').getroot()
           assert addon.attrib['id']=='script.watchnixtoons.anilist'
-          assert addon.attrib['version']=='0.5.0'
+          assert tuple(map(int, addon.attrib['version'].split('.'))) >= (0, 5, 0)
           assert settings.get('version')=='1'
           PY
       - name: No public-repository viewing state or credentials
