@@ -24,6 +24,10 @@ class NotificationTests(unittest.TestCase):
         self.assertEqual(len(notifications), 1)
         self.assertEqual(notifications[0].findtext("level"), "0")  # 4 = internal, never visible
         self.assertEqual(notifications[0].findtext("default"), "true")
+        self.assertEqual(notifications[0].get("label"), "32041")
+        language = (root / "resources" / "language" / "resource.language.en_gb" / "strings.po").read_text()
+        self.assertIn('msgctxt "#32041"', language)
+        self.assertIn('msgid "Notify when changes are sent to GitHub or AniList"', language)
         self.assertEqual(ET.parse(root / "addon.xml").getroot().get("version"), "0.5.4")
 
     def test_progress_from_exact_private_key(self):
