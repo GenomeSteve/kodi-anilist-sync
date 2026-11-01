@@ -15,6 +15,7 @@ from core import normalise, mapping_key, source_matches, exact_candidate, desire
 from storage import read_json, write_json
 from anilist_api import APIError, search, details, save
 from watched_db import recent_watched
+from sync_notifications import notify_sync
 
 ADDON = xbmcaddon.Addon('script.watchnixtoons.anilist')
 PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo('profile'))
@@ -185,11 +186,13 @@ class Tracker:
                 continue
             update = desired_progress(anime.get('mediaListEntry'), desired,
                                       anime_episode_count, anime.get('status'))
+            sent_to_anilist = False
             if update:
                 entry = anime.get('mediaListEntry') or {}
                 result = save(anime['id'], entry.get('id'), update[0], update[1], token)
                 if result.get('progress', 0) < desired:
                     raise APIError('AniList did not confirm the progress update.')
+                sent_to_anilist = True
                 self.note('AniList updated', 'AniList #%s episode %s' % (anime['id'], desired))
             self.note('Sync confirmed', '%s episode %s (AniList #%s)' % (event['title'], desired, anime['id']))
             self.state['done'][event_id] = {'anilist_id': anime['id'], 'episode': desired}
@@ -198,6 +201,11 @@ class Tracker:
             while len(self.state['done']) > 500:
                 del self.state['done'][next(iter(self.state['done']))]
             write_json(STATE_FILE, self.state)
+            if sent_to_anilist:
+                label = '%s Season %s Episode %s' % (
+                    event.get('title') or mapping.get('title') or 'Anime',
+                    event.get('season', 1), event['episode'])
+                notify_sync(ADDON, 'AniList', [('progress', label)])
 
     def tick(self, now):
         if self.player.isPlayingVideo():
