@@ -94,6 +94,13 @@ jobs:
           assert {x.get('id') for x in data} == {
             'script.watchnixtoons.anilist','plugin.video.watchnixtoons2',
             'repository.genomesteve.syncbeta'}
+          managed=next(x for x in data if x.get('id')=='repository.genomesteve.syncbeta')
+          assert managed.get('version') == '1.0.2'
+          endpoint=managed.find('.//extension[@point="xbmc.addon.repository"]/dir')
+          source='https://raw.githubusercontent.com/GenomeSteve/kodi-anilist-sync/main/beta/managed/'
+          assert endpoint.findtext('info') == source+'addons.xml'
+          assert endpoint.findtext('checksum') == source+'addons.xml.md5'
+          assert endpoint.findtext('datadir') == source
           for addon in data:
             aid, version=addon.get('id'),addon.get('version')
             target=root/aid/(aid+'-'+version+'.zip')
