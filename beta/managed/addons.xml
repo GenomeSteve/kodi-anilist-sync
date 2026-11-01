@@ -48,7 +48,7 @@ Random updates by lolage.
             <icon>icon.png</icon>
         </assets>
     </extension>
-</addon><addon id="repository.genomesteve.syncbeta" name="GenomeSteve WatchNixtoons2 Managed Beta" version="1.0.2" provider-name="GenomeSteve">
+</addon><addon id="repository.genomesteve.syncbeta" name="GenomeSteve WatchNixtoons2 Managed Beta" version="1.0.3" provider-name="GenomeSteve">
   <requires><import addon="xbmc.python" version="3.0.0" /></requires>
   <extension point="xbmc.addon.repository">
     <dir>
