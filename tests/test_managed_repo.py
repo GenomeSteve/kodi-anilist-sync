@@ -37,7 +37,7 @@ class ManagedRepoTests(unittest.TestCase):
         (self.repo / 'addon.xml').write_text(
             '<addon id="%s" version="%s"><extension point="xbmc.addon.repository"><dir>'
             '<info>%saddons.xml</info><checksum>%saddons.xml.md5</checksum>'
-            '<datadir>%s</datadir><hashes>false</hashes>'
+            '<datadir zip="true">%s</datadir><hashes>false</hashes>'
             '</dir></extension></addon>' % (
                 managed.REPOSITORY_ID, managed.REPOSITORY_VERSION,
                 managed.BASE_URL, managed.BASE_URL, managed.BASE_URL))
@@ -52,7 +52,7 @@ class ManagedRepoTests(unittest.TestCase):
             self.assertTrue(package.exists())
             self.assertEqual(managed.digest(package.read_bytes()),
                              hashes[package.relative_to(self.out).as_posix()])
-        self.assertTrue((self.out / 'repository.genomesteve.syncbeta-1.0.0.zip').exists())
+        self.assertTrue((self.out / 'repository.genomesteve.syncbeta-1.0.1.zip').exists())
         self.assertEqual(hashlib.md5((self.out / 'addons.xml').read_bytes()).hexdigest(),
                          (self.out / 'addons.xml.md5').read_text())
 
