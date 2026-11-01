@@ -15,7 +15,7 @@ PUBLISHED = 'https://api.github.com/repos/deklica/repo.dexe/contents/zips/plugin
 DEVELOPER = 'https://api.github.com/repos/christianhaitian/plugin.video.watchnixtoons2/contents'
 BASELINE_VERSION = '0.14.24'
 BASELINE_PACKAGE_SHA = 'b6a5cbc56a3f840120fc07ed6421e540d904c2fd'
-BASELINE_XML_SHA = '14669d4e555d0619a2bdc7710c86cd42fd52'
+BASELINE_XML_SHA = '14669d4e555d0619a2bdc771c1d7ee99e4f5dbd6'
 BASELINE_DEV_XML_SHA = 'e1e9ab58f71e6af0b20ef2c003058d1190fe4429'
 BASELINE_DEV_CODE_SHA = '74864eb82fef410bd310a75de867bb5af2a07fc8'
 
