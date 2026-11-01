@@ -15,7 +15,7 @@ from core import normalise, mapping_key, source_matches, exact_candidate, desire
 from storage import read_json, write_json
 from anilist_api import APIError, search, details, save
 from watched_db import recent_watched
-from sync_notifications import notify_sync
+from sync_notifications import notify_sync, flush_notifications
 
 ADDON = xbmcaddon.Addon('script.watchnixtoons.anilist')
 PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo('profile'))
@@ -283,6 +283,12 @@ def run():
                 background_worker = threading.Thread(target=run_optional_background,
                                                      name='WNT2OptionalSync', daemon=True)
                 background_worker.start()
+        # Dispatch confirmed GitHub/AniList toasts only once Kodi has been
+        # continuously idle; an active stream must never show sync pop-ups.
+        try:
+            flush_notifications(ADDON, is_playing=tracker.player.isPlayingVideo())
+        except Exception as exc:
+            log('Notification UI fault: %s' % type(exc).__name__, xbmc.LOGWARNING)
         if monitor.waitForAbort(2):
             break
     log('Stopped.')
