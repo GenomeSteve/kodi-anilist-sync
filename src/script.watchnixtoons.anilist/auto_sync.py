@@ -18,7 +18,8 @@ from history_import import locate_myvideos
 from private_store import GitHubStore, StoreError
 from storage import read_json, write_json
 from sync_protocol import (SyncStateError, add_resume, add_watched, blank_state,
-                           episode_id, incoming_resume, merge_state, validate_position)
+                           episode_id, incoming_resume, merge_state, validate_position,
+                           validated_state)
 
 
 PULL_INTERVAL = 900             # 15 min; AniList API rate-conscious
