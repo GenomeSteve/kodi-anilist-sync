@@ -11,7 +11,7 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 import zipfile
 
-BASE_URL = 'https://genomesteve.github.io/kodi-anilist-sync/beta/managed/'
+BASE_URL = 'https://raw.githubusercontent.com/GenomeSteve/kodi-anilist-sync/main/beta/managed/'
 APPROVED = {
     'plugin.video.watchnixtoons2': ('0.14.24.1',
         'plugin.video.watchnixtoons2-0.14.24.1-sync-beta.zip',
@@ -21,7 +21,7 @@ APPROVED = {
         '2a2543482221bda3afc9705008c778652ea00b7f77709d591f1086a1d9fb79fd'),
 }
 REPOSITORY_ID = 'repository.genomesteve.syncbeta'
-REPOSITORY_VERSION = '1.0.1'
+REPOSITORY_VERSION = '1.0.2'
 MAX_ARCHIVE_SIZE = 2_000_000
 
 
