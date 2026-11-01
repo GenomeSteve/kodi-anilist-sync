@@ -21,7 +21,7 @@ APPROVED = {
         '2a2543482221bda3afc9705008c778652ea00b7f77709d591f1086a1d9fb79fd'),
 }
 REPOSITORY_ID = 'repository.genomesteve.syncbeta'
-REPOSITORY_VERSION = '1.0.0'
+REPOSITORY_VERSION = '1.0.1'
 MAX_ARCHIVE_SIZE = 2_000_000
 
 
@@ -71,6 +71,8 @@ def make_repo(source, output, repository_source):
         element = endpoint.find(tag)
         if element is None or (element.text or '') != BASE_URL + url:
             raise ValueError('Repository endpoint mismatch')
+    if endpoint.find('datadir').get('zip') != 'true':
+        raise ValueError('Kodi repository must explicitly use ZIP packages')
     if endpoint.findtext('hashes') != 'false':
         raise ValueError('Unsupported hash-header configuration')
 
