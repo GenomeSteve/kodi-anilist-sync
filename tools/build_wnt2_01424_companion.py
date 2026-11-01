@@ -50,7 +50,8 @@ def build_provider(contents):
     addon.set("provider-name","WNT2; optional cross-device integration")
     files[root+"addon.xml"]=ET.tostring(addon,encoding="utf-8",xml_declaration=True)
     path = root+"lib/plugin.py"
-    code=files[path].decode("utf-8-sig")
+    # Source release uses CRLF in places; normalise before fail-closed anchors.
+    code=files[path].decode("utf-8-sig").replace("\r\n", "\n")
     header = "    def _episodeItemsGen():"
     bridge_init = (
         "    # Optional local-only metadata: never scrape or call the sync service here.\n"
