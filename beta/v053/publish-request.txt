@@ -1,0 +1,2 @@
+Publish paired v0.5.3 beta installers from successful trusted GitHub Actions run 41286022944.
+Source branch feature/startup-ready-watchnixtoons-v0.5.3; keep stable Kodi feed unchanged.
