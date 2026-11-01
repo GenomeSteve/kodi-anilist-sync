@@ -68,6 +68,9 @@ jobs:
               options = [x for x in settings.iter('setting') if x.attrib.get('id') == 'sync_notifications']
               assert len(options) == 1 and options[0].findtext('level') == '0'
               assert options[0].findtext('default') == 'true'
+              assert options[0].attrib.get('label') == '32041'
+              strings = z.read('script.watchnixtoons.anilist/resources/language/resource.language.en_gb/strings.po')
+              assert b'Notify when changes are sent to GitHub or AniList' in strings
               assert 'script.watchnixtoons.anilist/sync_notifications.py' in z.namelist()
           PY
       - name: Commit only the optional beta installer files
