@@ -1,0 +1,39 @@
+name: Monitor upstream WatchNixtoons2 (read-only)
+on:
+  schedule:
+    - cron: '37 7 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'tools/check_wnt2_upstream.py'
+      - 'tests/test_upstream_monitor.py'
+      - '.github/workflows/monitor-wnt2-upstream.yml'
+permissions:
+  contents: read
+  issues: write
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify monitoring logic without network
+        run: python -m unittest discover -s tests -p test_upstream_monitor.py -v
+      - name: Query approved upstream GitHub source metadata (no downloads or patching)
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python tools/check_wnt2_upstream.py
+      - name: Record newly detected upstream changes on tracking issue (deduplicated)
+        if: steps.check.outputs.changed == 'true' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ALERT_MARKER: ${{ steps.check.outputs.marker }}
+        run: |
+          if gh issue view 9 --repo "$GITHUB_REPOSITORY" --json comments --jq '.comments[].body' | grep -Fq "$ALERT_MARKER"; then
+            echo "Upstream source fingerprint has already been reported; no duplicate comment."
+          else
+            gh issue comment 9 --repo "$GITHUB_REPOSITORY" --body-file upstream-alert.txt
+          fi
