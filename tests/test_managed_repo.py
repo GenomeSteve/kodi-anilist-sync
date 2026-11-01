@@ -52,7 +52,7 @@ class ManagedRepoTests(unittest.TestCase):
             self.assertTrue(package.exists())
             self.assertEqual(managed.digest(package.read_bytes()),
                              hashes[package.relative_to(self.out).as_posix()])
-        self.assertTrue((self.out / 'repository.genomesteve.syncbeta-1.0.3.zip').exists())
+        self.assertTrue((self.out / 'repository.genomesteve.syncbeta-1.0.4.zip').exists())
         self.assertEqual(hashlib.md5((self.out / 'addons.xml').read_bytes()).hexdigest(),
                          (self.out / 'addons.xml.md5').read_text())
 
