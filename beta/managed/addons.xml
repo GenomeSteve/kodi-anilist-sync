@@ -64,7 +64,7 @@ Random updates by lolage.
     <platform>all</platform>
     <license>MIT</license>
   </extension>
-</addon><addon id="script.watchnixtoons.anilist" name="WatchNixtoons2 AniList Sync" version="0.5.5" provider-name="Community experimental">
+</addon><addon id="script.watchnixtoons.anilist" name="WatchNixtoons2 AniList Sync" version="0.5.6" provider-name="Community experimental">
   <requires>
     <import addon="xbmc.python" version="3.0.0" />
   </requires>
