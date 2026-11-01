@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'tools/build_wnt2_01424_companion.py'
+      - 'tools/verify_sync_metadata_canary.py'
       - 'integration/watchnixtoons2-kodi19/**'
       - 'src/script.watchnixtoons.anilist/**'
       - '.github/workflows/build-wnt2-01424-companion.yml'
@@ -21,6 +22,8 @@ jobs:
         run: python -W error::ResourceWarning -m unittest discover -s tests -q
       - name: Build from verified upstream source without site scraping
         run: python tools/build_wnt2_01424_companion.py
+      - name: Verify only version metadata changed and emit candidate SHA-256
+        run: python tools/verify_sync_metadata_canary.py
       - name: Verify both installer ZIPs contain no credentials
         run: |
           python - <<'PY'
