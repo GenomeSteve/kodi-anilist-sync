@@ -14,7 +14,7 @@ SOURCE_URL = ("https://raw.githubusercontent.com/deklica/repo.dexe/master/"
 SOURCE_BLOB = "b6a5cbc56a3f840120fc07ed6421e540d904c2fd"
 ORIGINAL_VERSION = "0.14.24"
 PATCHED_VERSION = "0.14.24.1"
-SYNC_VERSION = "0.5.5"
+SYNC_VERSION = "0.5.6"
 
 def pinned_upstream_zip():
     req = urllib.request.Request(SOURCE_URL, headers={"User-Agent":"Kodi-Cross-Device-Build"})
