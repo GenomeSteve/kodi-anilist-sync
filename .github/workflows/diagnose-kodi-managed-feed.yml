@@ -1,0 +1,35 @@
+name: Diagnose Kodi managed beta HTTP feed
+on:
+  push:
+    paths:
+      - '.github/workflows/diagnose-kodi-managed-feed.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe Github Pages repository feed
+        run: |
+          set -eux
+          python3 - <<'PY'
+          import urllib.request,xml.etree.ElementTree as ET,hashlib
+          base='https://genomesteve.github.io/kodi-anilist-sync/beta/managed/'
+          for file in ('index.html','addons.xml','addons.xml.md5',
+                       'repository.genomesteve.syncbeta-1.0.0.zip',
+                       'plugin.video.watchnixtoons2/plugin.video.watchnixtoons2-0.14.24.1.zip',
+                       'script.watchnixtoons.anilist/script.watchnixtoons.anilist-0.5.5.zip'):
+              url=base+file
+              with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'Kodi/21.2'}),timeout=20) as response:
+                  data=response.read(2500000)
+                  print(file, response.status, response.geturl(), response.headers.get('Content-Type'), len(data))
+              if file=='addons.xml':
+                  xml=data
+                  root=ET.fromstring(data)
+                  print('XML entries:',[(x.get('id'),x.get('version')) for x in root])
+              elif file=='addons.xml.md5':
+                  print('MD5 expected:',data.decode().strip())
+                  print('MD5 actual:',hashlib.md5(xml).hexdigest())
+                  assert hashlib.md5(xml).hexdigest()==data.decode().strip()
+          PY
