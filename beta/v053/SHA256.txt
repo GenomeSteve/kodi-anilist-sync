@@ -1,0 +1,2 @@
+baf458aa9e07257c6b331e0a28b68d7b385951660f32191707d9c223f40ff3a6  plugin.video.watchnixtoons2-0.14.24.1-sync-beta.zip
+c03e86eca534f210f11cfab76564e965dd6a54120f5dee3fc01533873607dfdb  script.watchnixtoons.anilist-0.5.3-beta.zip
