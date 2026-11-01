@@ -76,15 +76,42 @@ jobs:
               assert b'IDLE_GRACE_SECONDS = 8' in notifications
               assert b'def flush_notifications(' in notifications
           PY
+      - name: Assemble isolated approved Kodi repository from reviewed packages
+        run: |
+          python buildsrc/tools/build_managed_repo.py \
+            --source buildsrc/dist \
+            --repo-src buildsrc/src/repository.genomesteve.syncbeta \
+            --out published/beta/managed
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          from zipfile import ZipFile
+          import xml.etree.ElementTree as ET
+          root=Path('published/beta/managed')
+          index=(root/'addons.xml').read_bytes()
+          assert (root/'addons.xml.md5').read_text() == hashlib.md5(index).hexdigest()
+          data=ET.fromstring(index)
+          assert {x.get('id') for x in data} == {
+            'script.watchnixtoons.anilist','plugin.video.watchnixtoons2',
+            'repository.genomesteve.syncbeta'}
+          for addon in data:
+            aid, version=addon.get('id'),addon.get('version')
+            target=root/aid/(aid+'-'+version+'.zip')
+            assert target.is_file(),target
+            with ZipFile(target) as package:
+              assert package.testzip() is None
+              actual=ET.fromstring(package.read(aid+'/addon.xml'))
+              assert (actual.get('id'),actual.get('version'))==(aid,version)
+          PY
       - name: Commit only the optional beta installer files
         working-directory: published
         run: |
           git config user.name 'Kodi sync CI'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add beta/v055
+          git add beta/v055 beta/managed
           if git diff --cached --quiet; then
             echo 'No changes'
           else
-            git commit -m 'Publish optional version-matched WNT2 0.14.24 and startup-sync v0.5.5 beta'
+            git commit -m 'Publish approved source-pinned WNT2 0.14.24.1 and AniList Sync 0.5.5 managed beta'
             git push origin HEAD:main
           fi
