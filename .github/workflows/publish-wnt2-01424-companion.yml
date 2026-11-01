@@ -95,7 +95,7 @@ jobs:
             'script.watchnixtoons.anilist','plugin.video.watchnixtoons2',
             'repository.genomesteve.syncbeta'}
           managed=next(x for x in data if x.get('id')=='repository.genomesteve.syncbeta')
-          assert managed.get('version') == '1.0.2'
+          assert managed.get('version') == '1.0.3'
           endpoint=managed.find('.//extension[@point="xbmc.addon.repository"]/dir')
           source='https://raw.githubusercontent.com/GenomeSteve/kodi-anilist-sync/main/beta/managed/'
           assert endpoint.findtext('info') == source+'addons.xml'
