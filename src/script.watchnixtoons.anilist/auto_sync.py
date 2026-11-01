@@ -20,6 +20,7 @@ from storage import read_json, write_json
 from sync_protocol import (SyncStateError, add_resume, add_watched, blank_state,
                            episode_id, incoming_resume, merge_state, validate_position,
                            validated_state)
+from sync_notifications import notify_sync
 
 
 PULL_INTERVAL = 900             # 15 min; AniList API rate-conscious
@@ -305,6 +306,16 @@ class BackgroundEngine:
             self.metric('watched_uploaded', newly_sent, 'upload')
         if newer_positions:
             self.metric('resumes_uploaded', newer_positions, 'upload')
+        # Only report actual changes that were accepted by the private store.
+        confirmed_updates = [
+            ('progress', key) for key, point in proposed['resumes'].items()
+            if key in updated['resumes'] and updated['resumes'][key]['event'] == point['event']
+            and (key not in remote['resumes'] or remote['resumes'][key]['event'] != point['event'])
+        ]
+        confirmed_updates.extend(
+            ('watched', key) for key in proposed['watched']
+            if key not in remote['watched'] and key in updated['watched']
+        )
         # Restore exact per-episode watched ticks from either Firestick, even
         # for cartoons that AniList cannot represent. Never clear watched marks.
         marked = 0
@@ -358,6 +369,7 @@ class BackgroundEngine:
         self.state['observed'] = observed
         write_json(self.state_path, self.state)
         self.note('Private sync complete; %s exact ticks and %s resumes applied' % (marked, applied))
+        notify_sync(self.addon, 'GitHub', confirmed_updates)
 
     def _verified_playback(self, player, now):
         """Never guess an episode from CDN URL or an unrelated player."""
@@ -446,7 +458,17 @@ class BackgroundEngine:
         store = GitHubStore(self.addon.getSetting('private_repo').strip(),
                             self.addon.getSetting('private_token').strip())
         pending = self.state['pending']
+        previous = self._remote or blank_state()
         uploaded = store.merge_and_write(pending)
+        confirmed_updates = [
+            ('progress', key) for key, point in pending['resumes'].items()
+            if key in uploaded['resumes'] and uploaded['resumes'][key]['event'] == point['event']
+            and (key not in previous['resumes'] or previous['resumes'][key]['event'] != point['event'])
+        ]
+        confirmed_updates.extend(
+            ('watched', key) for key in pending['watched']
+            if key not in previous['watched'] and key in uploaded['watched']
+        )
         changed = sum(1 for key, point in pending['resumes'].items()
                       if key in uploaded['resumes'] and uploaded['resumes'][key]['event'] == point['event'])
         self._remote = uploaded
@@ -455,6 +477,7 @@ class BackgroundEngine:
             self.metric('resumes_uploaded', changed, 'upload')
         self.state['pending'] = blank_state()
         write_json(self.state_path, self.state)
+        notify_sync(self.addon, 'GitHub', confirmed_updates)
 
     def tick(self, now, is_playing=False):
         # Deliberately avoid background receiving while a stream is playing.
