@@ -1,4 +1,4 @@
 baf458aa9e07257c6b331e0a28b68d7b385951660f32191707d9c223f40ff3a6  plugin.video.watchnixtoons2/plugin.video.watchnixtoons2-0.14.24.1.zip
-839fdc26ed9f0033ff993bec2caad2bde7fa09f452ffc1ec51fda51415480aab  repository.genomesteve.syncbeta-1.0.0.zip
-839fdc26ed9f0033ff993bec2caad2bde7fa09f452ffc1ec51fda51415480aab  repository.genomesteve.syncbeta/repository.genomesteve.syncbeta-1.0.0.zip
+61fe23506094c604c179b0839a068bf6d407bf10641f55b20e08f8c4fddce62e  repository.genomesteve.syncbeta-1.0.0.zip
+61fe23506094c604c179b0839a068bf6d407bf10641f55b20e08f8c4fddce62e  repository.genomesteve.syncbeta/repository.genomesteve.syncbeta-1.0.0.zip
 2a2543482221bda3afc9705008c778652ea00b7f77709d591f1086a1d9fb79fd  script.watchnixtoons.anilist/script.watchnixtoons.anilist-0.5.5.zip
