@@ -116,11 +116,14 @@ class LiveServiceRegression(unittest.TestCase):
         before = {'id': 77, 'episodes': 12, 'status': 'FINISHED',
                   'mediaListEntry': {'id': 98, 'progress': 2, 'status': 'CURRENT'}}
         with patch.object(self.svc, 'details', return_value=before), \
-             patch.object(self.svc, 'save', return_value={'progress': 3}) as saving:
+             patch.object(self.svc, 'save', return_value={'progress': 3}) as saving, \
+             patch.object(self.svc, 'notify_sync') as notify:
             tracker.reconcile()
         self.assertIn('naruto|s1|e3', tracker.state['done'])
         self.assertNotIn('naruto|s1|e3', tracker.state['pending'])
         saving.assert_called_once_with(77, 98, 3, 'CURRENT', 'fake-token')
+        notify.assert_called_once_with(self.svc.ADDON, 'AniList',
+                                       [('progress', 'naruto Season 1 Episode 3')])
 
     def test_reconcile_unmapped_title_needs_review(self):
         tracker = self.svc.Tracker()
@@ -137,9 +140,11 @@ class LiveServiceRegression(unittest.TestCase):
         before = {'id': 77, 'episodes': 12, 'status': 'FINISHED',
                   'mediaListEntry': {'id': 98, 'progress': 4, 'status': 'CURRENT'}}
         with patch.object(self.svc, 'details', return_value=before), \
-             patch.object(self.svc, 'save') as saving:
+             patch.object(self.svc, 'save') as saving, \
+             patch.object(self.svc, 'notify_sync') as notify:
             tracker.reconcile()
         saving.assert_not_called()
+        notify.assert_not_called()
         self.assertIn('naruto|s1|e3', tracker.state['done'])
 
 
