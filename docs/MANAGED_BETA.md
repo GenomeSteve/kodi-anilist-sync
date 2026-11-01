@@ -11,7 +11,7 @@ verified on physical Firesticks**. Keep Firestick 1 unchanged until then.
    `https://genomesteve.github.io/kodi-anilist-sync/beta/managed/`
    and give it a name, such as `GenomeSteve Beta`.
 2. Kodi → Add-ons → Install from ZIP file → `GenomeSteve Beta` →
-   `repository.genomesteve.syncbeta-1.0.2.zip`.
+   `repository.genomesteve.syncbeta-1.0.3.zip`.
 3. Kodi → Add-ons → Install from repository →
    **GenomeSteve WatchNixtoons2 Managed Beta**.
 4. In the repository, find **WatchNixtoons2 AniList Sync** (program add-ons)
