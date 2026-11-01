@@ -33,9 +33,9 @@ jobs:
           persist-credentials: true
       - name: Make Kodi directory listing with exact ZIP filenames
         run: |
-          mkdir -p published/beta/v054
-          cp buildsrc/dist/*.zip published/beta/v054/
-          cd published/beta/v054
+          mkdir -p published/beta/v055
+          cp buildsrc/dist/*.zip published/beta/v055/
+          cd published/beta/v055
           sha256sum *.zip > SHA256.txt
           python - <<'PY'
           from pathlib import Path
@@ -43,27 +43,27 @@ jobs:
           assert len(filenames)==2,filenames
           rows=''.join('<tr><td><a href="%s">%s</a></td></tr>\n' % (n,n) for n in filenames)
           Path('index.html').write_text('''<!doctype html>
-          <html lang="en"><head><meta charset="utf-8"><title>Index of beta/v054</title></head>
-          <body><h1>Index of beta/v054</h1><table>'''+rows+'''</table>
-          <p>OPTIONAL experimental companion for WatchNixtoons2 0.14.24 on Kodi 21, plus standalone AniList Sync 0.5.4.
+          <html lang="en"><head><meta charset="utf-8"><title>Index of beta/v055</title></head>
+          <body><h1>Index of beta/v055</h1><table>'''+rows+'''</table>
+          <p>OPTIONAL experimental companion for WatchNixtoons2 0.14.24 on Kodi 21, plus standalone AniList Sync 0.5.5.
           Do not install the WNT2 companion unless your existing WNT2 id is plugin.video.watchnixtoons2 and version 0.14.24.
-          Back up the add-on and Kodi userdata first. First-render and first-click resume were verified on Firestick 2 with v0.5.3; v0.5.4 notification display still needs hardware verification.
+          Back up the add-on and Kodi userdata first. First-render and first-click resume were verified on Firestick 2 with v0.5.3; v0.5.5 notification display still needs hardware verification.
           The original public WNT2 source is SHA-pinned; no additional upstream streaming requests are made.</p>
           <p><a href="SHA256.txt">SHA256.txt</a></p></body></html>
           ''', encoding='utf8')
           PY
-      - name: Verify fresh v0.5.4 payload and Basic-level notification control
+      - name: Verify fresh v0.5.5 payload and Basic-level notification control
         run: |
           python - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
           import xml.etree.ElementTree as ET
-          path = Path('published/beta/v054/script.watchnixtoons.anilist-0.5.4-beta.zip')
-          assert path.is_file(), 'New uniquely named v0.5.4 ZIP missing'
+          path = Path('published/beta/v055/script.watchnixtoons.anilist-0.5.5-beta.zip')
+          assert path.is_file(), 'New uniquely named v0.5.5 ZIP missing'
           with ZipFile(path) as z:
               assert z.testzip() is None
               addon = ET.fromstring(z.read('script.watchnixtoons.anilist/addon.xml'))
-              assert addon.attrib['version'] == '0.5.4'
+              assert addon.attrib['version'] == '0.5.5'
               settings = ET.fromstring(z.read('script.watchnixtoons.anilist/resources/settings.xml'))
               options = [x for x in settings.iter('setting') if x.attrib.get('id') == 'sync_notifications']
               assert len(options) == 1 and options[0].findtext('level') == '0'
@@ -72,16 +72,19 @@ jobs:
               strings = z.read('script.watchnixtoons.anilist/resources/language/resource.language.en_gb/strings.po')
               assert b'Notify when changes are sent to GitHub or AniList' in strings
               assert 'script.watchnixtoons.anilist/sync_notifications.py' in z.namelist()
+              notifications = z.read('script.watchnixtoons.anilist/sync_notifications.py')
+              assert b'IDLE_GRACE_SECONDS = 8' in notifications
+              assert b'def flush_notifications(' in notifications
           PY
       - name: Commit only the optional beta installer files
         working-directory: published
         run: |
           git config user.name 'Kodi sync CI'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add beta/v054
+          git add beta/v055
           if git diff --cached --quiet; then
             echo 'No changes'
           else
-            git commit -m 'Publish optional version-matched WNT2 0.14.24 and startup-sync v0.5.4 beta'
+            git commit -m 'Publish optional version-matched WNT2 0.14.24 and startup-sync v0.5.5 beta'
             git push origin HEAD:main
           fi
