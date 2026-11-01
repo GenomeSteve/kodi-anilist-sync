@@ -16,7 +16,7 @@ verified on physical Firesticks**. Keep Firestick 1 unchanged until then.
    **GenomeSteve WatchNixtoons2 Managed Beta**.
 4. In the repository, find **WatchNixtoons2 AniList Sync** (program add-ons)
    and **WatchNixtoons2** (video add-ons). Confirm that the offered versions
-   are **0.5.5** and **0.14.24.1**, respectively.
+   are **0.5.6** and **0.14.24.1**, respectively.
 5. **Existing manual-ZIP installations are not auto-updated by Kodi.**
    On the existing add-on's information page use **Versions** to explicitly
    select the build from **GenomeSteve WatchNixtoons2 Managed Beta**.
@@ -31,11 +31,14 @@ verified on physical Firesticks**. Keep Firestick 1 unchanged until then.
 
 ## Release safety and update policy
 
-- The stable pre-existing `zips/` feed is unchanged.
+- The stable pre-existing `zips/` feed and the v0.5.5 fallback are unchanged.
 - The opt-in managed channel is published under `beta/managed/`. Its
   `addons.xml` and `addons.xml.md5` follow Kodi's indexed-repository
   layout, and installers use canonical `addon.id-version.zip` filenames.
 - All build inputs are SHA-256 approved in `tools/build_managed_repo.py`.
+  The sync v0.5.6 upgrade was independently compared byte-for-byte against
+  the approved v0.5.5 ZIP: its only payload change is the version number
+  in `addon.xml`. WatchNixtoons2 remains 0.14.24.1.
   Builds fail if either provider or sync archive differs from the reviewed
   v0.14.24.1/v0.5.5 packages. The public `SHA256.txt` records released
   file digests. Checksums are **not digital signatures**.
@@ -54,7 +57,8 @@ verified on physical Firesticks**. Keep Firestick 1 unchanged until then.
 ## Rollback
 
 The original standalone v0.5.5 and companion v0.14.24.1 ZIPs remain
-available at `beta/v055/`. The old stable Kodi repository feed remains
+available at `beta/v055/` for rollback. The metadata-only v0.5.6 sync
+update is also published separately at `beta/v056/`. The old stable Kodi repository feed remains
 unchanged. Existing Kodi user data must not be deleted when switching
 versions. When testing a new version, preserve a copy of the previously
 working ZIP and choose it from the add-on's **Versions** screen, or
