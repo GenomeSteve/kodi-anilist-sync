@@ -44,7 +44,15 @@ class BackgroundEngine:
         self.state.setdefault('pending', blank_state())
         self.state.setdefault('last_status', 'Background features off')
         self.state.setdefault('stats', {})
+        # Cold-start immediately checks GitHub; the last verified local
+        # snapshot remains available even if the network is offline.
+        self.state['last_private'] = 0
+        self.snapshot_path = os.path.join(profile, 'private_snapshot.json')
         self._remote = None
+        try:
+            self._remote = validated_state(read_json(self.snapshot_path, {}))
+        except (ValueError, SyncStateError):
+            pass  # Never use untrusted or corrupt cached viewing state.
         self._selected = None
         self._selected_attempt = None
         self._playback_restored = None
@@ -234,6 +242,11 @@ class BackgroundEngine:
             return
         store = GitHubStore(repo, token)
         remote, _sha = store.read()
+        # Local, token-free state is read by the optional WatchNixtoons2
+        # first-render integration. No plugin directory or site requests.
+        self._remote = remote
+        write_json(self.snapshot_path, remote)
+        self.state['stats']['last_fetch'] = time.strftime('%Y-%m-%d %H:%M:%S')
         pending = self.state['pending']
         observed = self.state['observed']
         records = self.known_episodes(include_listings=False)
@@ -281,6 +294,7 @@ class BackgroundEngine:
         write_json(self.state_path, self.state)  # durable offline queue BEFORE network write
         updated = store.merge_and_write(proposed)
         self._remote = updated
+        write_json(self.snapshot_path, updated)
         newly_sent = sum(1 for key in proposed['watched'] if key not in remote['watched']
                          and key in updated['watched'])
         newer_positions = sum(1 for key, point in proposed['resumes'].items()
@@ -435,6 +449,7 @@ class BackgroundEngine:
         changed = sum(1 for key, point in pending['resumes'].items()
                       if key in uploaded['resumes'] and uploaded['resumes'][key]['event'] == point['event'])
         self._remote = uploaded
+        write_json(self.snapshot_path, uploaded)
         if changed:
             self.metric('resumes_uploaded', changed, 'upload')
         self.state['pending'] = blank_state()
