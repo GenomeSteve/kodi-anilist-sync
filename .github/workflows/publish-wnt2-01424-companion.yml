@@ -1,0 +1,66 @@
+name: Publish opt-in WNT2 v0.14.24 startup-resume beta
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/publish-wnt2-01424-companion.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    if: >-
+      github.repository == 'GenomeSteve/kodi-anilist-sync' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'feature/startup-ready-watchnixtoons-v0.5.3'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: buildsrc
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Complete regression suite and source-pinned builds
+        working-directory: buildsrc
+        run: |
+          python -W error::ResourceWarning -m unittest discover -s tests -q
+          python tools/build_wnt2_01424_companion.py
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: published
+          persist-credentials: true
+      - name: Make Kodi directory listing with exact ZIP filenames
+        run: |
+          mkdir -p published/beta/v053
+          cp buildsrc/dist/*.zip published/beta/v053/
+          cd published/beta/v053
+          sha256sum *.zip > SHA256.txt
+          python - <<'PY'
+          from pathlib import Path
+          filenames=sorted(p.name for p in Path('.').glob('*.zip'))
+          assert len(filenames)==2,filenames
+          rows=''.join('<tr><td><a href="%s">%s</a></td></tr>\n' % (n,n) for n in filenames)
+          Path('index.html').write_text('''<!doctype html>
+          <html lang="en"><head><meta charset="utf-8"><title>Index of beta/v053</title></head>
+          <body><h1>Index of beta/v053</h1><table>'''+rows+'''</table>
+          <p>OPTIONAL experimental companion for WatchNixtoons2 0.14.24 on Kodi 21, plus standalone AniList Sync 0.5.3.
+          Do not install the WNT2 companion unless your existing WNT2 id is plugin.video.watchnixtoons2 and version 0.14.24.
+          Back up the add-on and Kodi userdata first. The new ListItem metadata and first-click resume are not verified on physical Firesticks.
+          The original public WNT2 source is SHA-pinned; no additional upstream streaming requests are made.</p>
+          <p><a href="SHA256.txt">SHA256.txt</a></p></body></html>
+          ''', encoding='utf8')
+          PY
+      - name: Commit only the optional beta installer files
+        working-directory: published
+        run: |
+          git config user.name 'Kodi sync CI'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add beta/v053
+          if git diff --cached --quiet; then
+            echo 'No changes'
+          else
+            git commit -m 'Publish optional version-matched WNT2 0.14.24 and startup-sync v0.5.3 betas'
+            git push origin HEAD:main
+          fi
