@@ -1,0 +1,129 @@
+name: Publish opt-in WNT2 v0.14.24 startup-resume beta
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/publish-wnt2-01424-companion.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    if: >-
+      github.repository == 'GenomeSteve/kodi-anilist-sync' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'feature/startup-ready-watchnixtoons-v0.5.3'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: buildsrc
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Complete regression suite and source-pinned builds
+        working-directory: buildsrc
+        run: |
+          python -W error::ResourceWarning -m unittest discover -s tests -q
+          python tools/build_wnt2_01424_companion.py
+          python tools/verify_sync_metadata_canary.py
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: published
+          persist-credentials: true
+      - name: Make Kodi directory listing with exact ZIP filenames
+        run: |
+          mkdir -p published/beta/v056
+          cp buildsrc/dist/*.zip published/beta/v056/
+          cd published/beta/v056
+          sha256sum *.zip > SHA256.txt
+          python - <<'PY'
+          from pathlib import Path
+          filenames=sorted(p.name for p in Path('.').glob('*.zip'))
+          assert len(filenames)==2,filenames
+          rows=''.join('<tr><td><a href="%s">%s</a></td></tr>\n' % (n,n) for n in filenames)
+          Path('index.html').write_text('''<!doctype html>
+          <html lang="en"><head><meta charset="utf-8"><title>Index of beta/v056</title></head>
+          <body><h1>Index of beta/v056</h1><table>'''+rows+'''</table>
+          <p>OPTIONAL experimental companion for WatchNixtoons2 0.14.24 on Kodi 21, plus standalone AniList Sync 0.5.6.
+          Do not install the WNT2 companion unless your existing WNT2 id is plugin.video.watchnixtoons2 and version 0.14.24.
+          Back up the add-on and Kodi userdata first. First-render and first-click resume were verified on Firestick 2 with v0.5.3; v0.5.5 notification behaviour was confirmed on Firestick 2; v0.5.6 is a version-only upgrade canary.
+          The original public WNT2 source is SHA-pinned; no additional upstream streaming requests are made.</p>
+          <p><a href="SHA256.txt">SHA256.txt</a></p></body></html>
+          ''', encoding='utf8')
+          PY
+      - name: Verify fresh v0.5.6 payload and Basic-level notification control
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          import xml.etree.ElementTree as ET
+          path = Path('published/beta/v056/script.watchnixtoons.anilist-0.5.6-beta.zip')
+          assert path.is_file(), 'New uniquely named v0.5.6 ZIP missing'
+          with ZipFile(path) as z:
+              assert z.testzip() is None
+              addon = ET.fromstring(z.read('script.watchnixtoons.anilist/addon.xml'))
+              assert addon.attrib['version'] == '0.5.6'
+              settings = ET.fromstring(z.read('script.watchnixtoons.anilist/resources/settings.xml'))
+              options = [x for x in settings.iter('setting') if x.attrib.get('id') == 'sync_notifications']
+              assert len(options) == 1 and options[0].findtext('level') == '0'
+              assert options[0].findtext('default') == 'true'
+              assert options[0].attrib.get('label') == '32041'
+              strings = z.read('script.watchnixtoons.anilist/resources/language/resource.language.en_gb/strings.po')
+              assert b'Notify when changes are sent to GitHub or AniList' in strings
+              assert 'script.watchnixtoons.anilist/sync_notifications.py' in z.namelist()
+              notifications = z.read('script.watchnixtoons.anilist/sync_notifications.py')
+              assert b'IDLE_GRACE_SECONDS = 8' in notifications
+              assert b'def flush_notifications(' in notifications
+          PY
+      - name: Assemble isolated approved Kodi repository from reviewed packages
+        run: |
+          python buildsrc/tools/build_managed_repo.py \
+            --source buildsrc/dist \
+            --repo-src buildsrc/src/repository.genomesteve.syncbeta \
+            --out published/beta/managed
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          from zipfile import ZipFile
+          import xml.etree.ElementTree as ET
+          root=Path('published/beta/managed')
+          index=(root/'addons.xml').read_bytes()
+          assert (root/'addons.xml.md5').read_text() == hashlib.md5(index).hexdigest()
+          data=ET.fromstring(index)
+          assert {x.get('id') for x in data} == {
+            'script.watchnixtoons.anilist','plugin.video.watchnixtoons2',
+            'repository.genomesteve.syncbeta'}
+          sync=next(x for x in data if x.get('id')=='script.watchnixtoons.anilist')
+          assert sync.get('version') == '0.5.6'
+          provider=next(x for x in data if x.get('id')=='plugin.video.watchnixtoons2')
+          assert provider.get('version') == '0.14.24.1'
+          managed=next(x for x in data if x.get('id')=='repository.genomesteve.syncbeta')
+          assert managed.get('version') == '1.0.4'
+          endpoint=managed.find('.//extension[@point="xbmc.addon.repository"]/dir')
+          source='https://raw.githubusercontent.com/GenomeSteve/kodi-anilist-sync/main/beta/managed/'
+          assert endpoint.findtext('info') == source+'addons.xml'
+          assert endpoint.findtext('checksum') == source+'addons.xml.md5'
+          assert endpoint.findtext('datadir') == source
+          for addon in data:
+            aid, version=addon.get('id'),addon.get('version')
+            target=root/aid/(aid+'-'+version+'.zip')
+            assert target.is_file(),target
+            with ZipFile(target) as package:
+              assert package.testzip() is None
+              actual=ET.fromstring(package.read(aid+'/addon.xml'))
+              assert (actual.get('id'),actual.get('version'))==(aid,version)
+          PY
+      - name: Commit only the optional beta installer files
+        working-directory: published
+        run: |
+          git config user.name 'Kodi sync CI'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add beta/v056 beta/managed
+          if git diff --cached --quiet; then
+            echo 'No changes'
+          else
+            git commit -m 'Publish approved source-pinned WNT2 0.14.24.1 and AniList Sync 0.5.6 managed beta'
+            git push origin HEAD:main
+          fi

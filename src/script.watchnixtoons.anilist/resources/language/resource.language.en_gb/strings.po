@@ -1,0 +1,13 @@
+# Kodi AniList Sync user-facing settings
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: en_GB\n"
+
+msgctxt "#32040"
+msgid "General"
+msgstr ""
+
+msgctxt "#32041"
+msgid "Notify when changes are sent to GitHub or AniList"
+msgstr ""

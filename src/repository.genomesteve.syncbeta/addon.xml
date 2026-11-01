@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon id="repository.genomesteve.syncbeta" name="GenomeSteve WatchNixtoons2 Managed Beta" version="1.0.4" provider-name="GenomeSteve">
+  <requires><import addon="xbmc.python" version="3.0.0" /></requires>
+  <extension point="xbmc.addon.repository">
+    <dir>
+      <info compressed="false">https://raw.githubusercontent.com/GenomeSteve/kodi-anilist-sync/main/beta/managed/addons.xml</info>
+      <checksum>https://raw.githubusercontent.com/GenomeSteve/kodi-anilist-sync/main/beta/managed/addons.xml.md5</checksum>
+      <datadir zip="true">https://raw.githubusercontent.com/GenomeSteve/kodi-anilist-sync/main/beta/managed/</datadir>
+      <hashes>false</hashes>
+    </dir>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_GB">Approved WatchNixtoons2 companion and AniList Sync beta updates</summary>
+    <description lang="en_GB">Opt-in, manually approved Kodi updates for source-matched WatchNixtoons2 and cross-device AniList Sync. Does not automatically repatch new upstream releases.</description>
+    <platform>all</platform>
+    <license>MIT</license>
+  </extension>
+</addon>

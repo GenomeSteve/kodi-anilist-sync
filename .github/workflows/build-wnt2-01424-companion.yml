@@ -1,0 +1,43 @@
+name: Build opt-in WatchNixtoons2 v0.14.24 startup-sync companion
+on:
+  pull_request:
+    paths:
+      - 'tools/build_wnt2_01424_companion.py'
+      - 'tools/verify_sync_metadata_canary.py'
+      - 'integration/watchnixtoons2-kodi19/**'
+      - 'src/script.watchnixtoons.anilist/**'
+      - '.github/workflows/build-wnt2-01424-companion.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Regression tests
+        run: python -W error::ResourceWarning -m unittest discover -s tests -q
+      - name: Build from verified upstream source without site scraping
+        run: python tools/build_wnt2_01424_companion.py
+      - name: Verify only version metadata changed and emit candidate SHA-256
+        run: python tools/verify_sync_metadata_canary.py
+      - name: Verify both installer ZIPs contain no credentials
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          for p in Path('dist').glob('*.zip'):
+              with ZipFile(p) as z:
+                  assert z.testzip() is None
+                  assert not any(n.endswith('.pyc') for n in z.namelist())
+                  assert not any(n.endswith('private_snapshot.json') or n.endswith('background.json') for n in z.namelist())
+                  assert not any('token' in n.lower() for n in z.namelist())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wnt2-startup-sync-v053-beta-installers
+          path: dist/*.zip
+          retention-days: 30

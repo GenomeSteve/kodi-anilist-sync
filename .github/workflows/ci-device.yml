@@ -52,7 +52,37 @@ jobs:
               return {node.name: ast.dump(node) for node in ast.parse(source).body
                       if isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef,ast.ClassDef))
                       and node.name != 'run'}
-          assert routines(original(root+'service.py')) == routines(Path(root+'service.py').read_text())
+          # The original tracker must remain AST-identical after removing only
+          # three precisely defined notification-only additions to reconcile().
+          class StripConfirmedUploadToast(ast.NodeTransformer):
+              def __init__(self):
+                  self.assignments = []
+                  self.toasts = 0
+              def visit_Assign(self, node):
+                  if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name) and node.targets[0].id == 'sent_to_anilist':
+                      assert isinstance(node.value, ast.Constant) and isinstance(node.value.value, bool)
+                      self.assignments.append(node.value.value)
+                      return None
+                  return self.generic_visit(node)
+              def visit_If(self, node):
+                  if isinstance(node.test, ast.Name) and node.test.id == 'sent_to_anilist':
+                      expected = ast.parse('''
+          if sent_to_anilist:
+              label = '%s Season %s Episode %s' % (
+                  event.get('title') or mapping.get('title') or 'Anime',
+                  event.get('season', 1), event['episode'])
+              notify_sync(ADDON, 'AniList', [('progress', label)])
+          ''').body[0]
+                      assert ast.dump(node) == ast.dump(expected)
+                      self.toasts += 1
+                      return None
+                  return self.generic_visit(node)
+          candidate_tree = ast.parse(Path(root+'service.py').read_text())
+          stripped = StripConfirmedUploadToast()
+          candidate_tree = stripped.visit(candidate_tree)
+          assert stripped.assignments == [False, True]
+          assert stripped.toasts == 1
+          assert routines(original(root+'service.py')) == routines(ast.unparse(candidate_tree))
           def settings(xml):
               root = ET.fromstring(xml)
               return {setting.get('id'): ET.tostring(setting).strip()

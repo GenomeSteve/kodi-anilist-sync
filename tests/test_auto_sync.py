@@ -228,6 +228,43 @@ class Background(unittest.TestCase):
         self.assertIn(episode_id(URL),self.engine.state['pending']['watched'])
         self.assertTrue(self.engine.state['pending']['resumes'][episode_id(URL)]['rewatch'])
 
+    def test_github_toast_after_confirmed_resume_upload_only(self):
+        self.kodi.resumes[URL] = {'position': 400, 'total': 1200}
+        self.engine.state['observed'][episode_id(URL)] = {'signature': '300/1200', 'at': 1}
+        with patch.object(auto_sync, 'notify_sync') as notify:
+            self.engine.private_sync()
+            notify.assert_called_once_with(
+                self.addon, 'GitHub', [('progress', episode_id(URL))])
+            notify.reset_mock()
+            # An unchanged periodic sync is not a new upload.
+            self.engine.private_sync()
+            self.assertEqual(notify.call_args.args[2], [])
+
+    def test_github_toast_for_new_watched_tick(self):
+        self.row['playcount'] = 1
+        with patch.object(auto_sync, 'notify_sync') as notify:
+            self.engine.private_sync()
+        self.assertEqual(notify.call_args.args[2],
+                         [('watched', episode_id(URL))])
+
+    def test_incoming_bookmark_does_not_create_upload_toast(self):
+        self.hub.value = add_resume(blank_state(), episode_id(URL), 120, 1200,
+                                    {'at':500, 'device':'A', 'counter':1})
+        with patch.object(auto_sync, 'notify_sync') as notify:
+            self.engine.private_sync()
+        self.assertEqual(notify.call_args.args[2], [])
+
+    def test_active_playback_upload_notification_not_repeated(self):
+        self.engine.records = lambda: [self.row]
+        self._setup_recent()
+        now = time.time()
+        self.engine.capture_playback(self._player(), now)
+        with patch.object(auto_sync, 'notify_sync') as notify:
+            self.engine.flush_playback(now)
+            self.engine.flush_playback(now + 61)
+        notify.assert_called_once_with(
+            self.addon, 'GitHub', [('progress', episode_id(URL))])
+
     def test_no_other_addon_in_private(self):
         self.hub.value=add_watched(blank_state(),['/naruto-episode-5-other-addon'])
         self.engine.known_episodes=lambda include_listings=False:[]
