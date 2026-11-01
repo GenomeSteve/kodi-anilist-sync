@@ -52,7 +52,7 @@ class ManagedRepoTests(unittest.TestCase):
             self.assertTrue(package.exists())
             self.assertEqual(managed.digest(package.read_bytes()),
                              hashes[package.relative_to(self.out).as_posix()])
-        self.assertTrue((self.out / 'repository.genomesteve.syncbeta-1.0.1.zip').exists())
+        self.assertTrue((self.out / 'repository.genomesteve.syncbeta-1.0.2.zip').exists())
         self.assertEqual(hashlib.md5((self.out / 'addons.xml').read_bytes()).hexdigest(),
                          (self.out / 'addons.xml.md5').read_text())
 
@@ -78,7 +78,7 @@ class ManagedRepoTests(unittest.TestCase):
 
     def test_unknown_repository_endpoint_rejected(self):
         path = self.repo / 'addon.xml'
-        path.write_text(path.read_text().replace('genomesteve.github.io', 'untrusted.example'))
+        path.write_text(path.read_text().replace('raw.githubusercontent.com', 'untrusted.example'))
         with self.assertRaisesRegex(ValueError, 'endpoint mismatch'):
             managed.make_repo(self.src, self.out, self.repo)
 
