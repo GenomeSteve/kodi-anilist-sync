@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="repository.genomesteve.syncbeta" name="GenomeSteve WatchNixtoons2 Managed Beta" version="1.0.2" provider-name="GenomeSteve">
+<addon id="repository.genomesteve.syncbeta" name="GenomeSteve WatchNixtoons2 Managed Beta" version="1.0.3" provider-name="GenomeSteve">
   <requires><import addon="xbmc.python" version="3.0.0" /></requires>
   <extension point="xbmc.addon.repository">
     <dir>
