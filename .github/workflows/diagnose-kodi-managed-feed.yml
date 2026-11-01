@@ -17,7 +17,7 @@ jobs:
           import urllib.request,xml.etree.ElementTree as ET,hashlib
           base='https://genomesteve.github.io/kodi-anilist-sync/beta/managed/'
           for file in ('index.html','addons.xml','addons.xml.md5',
-                       'repository.genomesteve.syncbeta-1.0.0.zip',
+                       'repository.genomesteve.syncbeta-1.0.1.zip',
                        'plugin.video.watchnixtoons2/plugin.video.watchnixtoons2-0.14.24.1.zip',
                        'script.watchnixtoons.anilist/script.watchnixtoons.anilist-0.5.5.zip'):
               url=base+file
@@ -28,6 +28,9 @@ jobs:
                   xml=data
                   root=ET.fromstring(data)
                   print('XML entries:',[(x.get('id'),x.get('version')) for x in root])
+                  repo=next(x for x in root if x.get('id')=='repository.genomesteve.syncbeta')
+                  assert repo.get('version')=='1.0.1'
+                  assert repo.find('.//extension[@point="xbmc.addon.repository"]/dir/datadir').get('zip')=='true'
               elif file=='addons.xml.md5':
                   print('MD5 expected:',data.decode().strip())
                   print('MD5 actual:',hashlib.md5(xml).hexdigest())
