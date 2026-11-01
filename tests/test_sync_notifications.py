@@ -37,7 +37,7 @@ class NotificationTests(unittest.TestCase):
         language = (root / "resources" / "language" / "resource.language.en_gb" / "strings.po").read_text()
         self.assertIn('msgctxt "#32041"', language)
         self.assertIn('msgid "Notify when changes are sent to GitHub or AniList"', language)
-        self.assertEqual(ET.parse(root / "addon.xml").getroot().get("version"), "0.5.5")
+        self.assertEqual(ET.parse(root / "addon.xml").getroot().get("version"), "0.5.6")
 
     def test_github_progress_waits_for_stop_not_live_minute_uploads(self):
         title = "/black-clover-season-2-episode-2-english-subbed"
