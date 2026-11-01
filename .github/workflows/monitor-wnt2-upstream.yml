@@ -1,5 +1,10 @@
 name: Monitor upstream WatchNixtoons2 (read-only)
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/check_wnt2_upstream.py'
+      - '.github/workflows/monitor-wnt2-upstream.yml'
   schedule:
     - cron: '37 7 * * *'
   workflow_dispatch:
