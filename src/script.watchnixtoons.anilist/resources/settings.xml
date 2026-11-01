@@ -25,7 +25,7 @@
           <level>4</level><default>false</default><control type="toggle"/>
         </setting>
         <setting id="sync_notifications" type="boolean" label="Notify when changes are sent to GitHub or AniList">
-          <level>4</level><default>true</default><control type="toggle"/>
+          <level>0</level><default>true</default><control type="toggle"/>
         </setting>
         <setting id="private_repo" type="string" label="Private GitHub owner/repo">
           <level>4</level><default/><control type="edit" format="string"/>
