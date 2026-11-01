@@ -16,9 +16,9 @@ APPROVED = {
     'plugin.video.watchnixtoons2': ('0.14.24.1',
         'plugin.video.watchnixtoons2-0.14.24.1-sync-beta.zip',
         'baf458aa9e07257c6b331e0a28b68d7b385951660f32191707d9c223f40ff3a6'),
-    'script.watchnixtoons.anilist': ('0.5.5',
-        'script.watchnixtoons.anilist-0.5.5-beta.zip',
-        '2a2543482221bda3afc9705008c778652ea00b7f77709d591f1086a1d9fb79fd'),
+    'script.watchnixtoons.anilist': ('0.5.6',
+        'script.watchnixtoons.anilist-0.5.6-beta.zip',
+        'eeff0a6a8a9d555b3c54e012941f0e40e01f092cef7595c5a65dfebff234f456'),
 }
 REPOSITORY_ID = 'repository.genomesteve.syncbeta'
 REPOSITORY_VERSION = '1.0.4'
