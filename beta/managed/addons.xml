@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addons><addon id="plugin.video.watchnixtoons2" name="WatchNixtoons2" version="0.14.24.1" provider-name="WNT2; optional cross-device integration">
+    <requires>
+        <import addon="script.module.requests" />
+        <import addon="script.module.six" />
+        <import addon="inputstream.adaptive" />
+    </requires>
+    <extension point="xbmc.python.pluginsource" library="default.py">
+        <provides>video</provides>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary lang="en">WatchNixtoons2</summary>
+        <description lang="en">
+Watch cartoons and anime from [COLOR orange][B]www.wcostream.tv[/B][/COLOR].
+
+Support the WatchCartoonOnline website with a PayPal donation to:
+[COLOR khaki][B]wcohelp@yandex.com[/B][/COLOR]
+
+Add-on originally by doko.
+Random updates by lolage.
+        </description>
+        <disclaimer lang="en">The authors of this addon do not host any of the content found or have any affiliation with the content providers. This add-on only scrapes web pages.</disclaimer>
+        <language>en</language>
+        <platform lang="en">all</platform>
+        <news>[COLOR orange][B]WatchNixtoons2[/B][/COLOR] - Cartoons &amp; Anime
+[B]0.14.24:[/B]
+- Update Thumbnail Hashes
+- Update User Agent
+
+[B]0.14.23:[/B]
+- Fix Premium Detection
+
+[B]0.14.22:[/B]
+- Fix Search
+- Rework of Search Menu
+- Enable Thumbnails for Genre Results
+- Enable Thumbnails and Fanart for Movie Search
+- Update Thumbnail Hashes
+- Update User Agent
+
+[B]0.14.21:[/B]
+- Fix Latest Movies Section
+- Update Thumbnail Hashes
+
+[B]0.14.20:[/B]
+- Change to new thumbnail domain</news>
+        <assets>
+            <icon>icon.png</icon>
+        </assets>
+    </extension>
+</addon><addon id="repository.genomesteve.syncbeta" name="GenomeSteve WatchNixtoons2 Managed Beta" version="1.0.0" provider-name="GenomeSteve">
+  <requires><import addon="xbmc.python" version="3.0.0" /></requires>
+  <extension point="xbmc.addon.repository">
+    <dir>
+      <info compressed="false">https://genomesteve.github.io/kodi-anilist-sync/beta/managed/addons.xml</info>
+      <checksum>https://genomesteve.github.io/kodi-anilist-sync/beta/managed/addons.xml.md5</checksum>
+      <datadir>https://genomesteve.github.io/kodi-anilist-sync/beta/managed/</datadir>
+      <hashes>false</hashes>
+    </dir>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_GB">Approved WatchNixtoons2 companion and AniList Sync beta updates</summary>
+    <description lang="en_GB">Opt-in, manually approved Kodi updates for source-matched WatchNixtoons2 and cross-device AniList Sync. Does not automatically repatch new upstream releases.</description>
+    <platform>all</platform>
+    <license>MIT</license>
+  </extension>
+</addon><addon id="script.watchnixtoons.anilist" name="WatchNixtoons2 AniList Sync" version="0.5.5" provider-name="Community experimental">
+  <requires>
+    <import addon="xbmc.python" version="3.0.0" />
+  </requires>
+  <extension point="xbmc.python.script" library="default.py">
+    <provides>executable</provides>
+  </extension>
+  <extension point="xbmc.service" library="service.py" />
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_GB">Synchronise completed WatchNixtoons2 anime episodes to AniList.</summary>
+    <description lang="en_GB">A lightweight, opt-in experimental background tracker. Verifies WatchNixtoons2 playback and a completion threshold, then updates AniList progress. Ambiguous anime mappings require review. Does not modify WatchNixtoons2 or access Real-Debrid/Trakt credentials.</description>
+    <language>en</language>
+    <platform>all</platform>
+    <license>MIT</license>
+  </extension>
+</addon></addons>
