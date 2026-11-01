@@ -1,6 +1,7 @@
 """Outbound sync notifications must describe real uploads, not idle checks."""
 import sys
 import unittest
+from xml.etree import ElementTree as ET
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -15,6 +16,15 @@ class NotificationTests(unittest.TestCase):
         self.ui = SimpleNamespace(Dialog=lambda: SimpleNamespace(
             notification=lambda *args, **kwargs: self.calls.append((args, kwargs))))
         self.addon = SimpleNamespace(getSetting=lambda key: "true")
+
+    def test_setting_is_visible_in_kodi_and_new_version(self):
+        root = Path(__file__).resolve().parents[1] / "src" / "script.watchnixtoons.anilist"
+        settings = ET.parse(root / "resources" / "settings.xml")
+        notifications = [x for x in settings.iter("setting") if x.get("id") == "sync_notifications"]
+        self.assertEqual(len(notifications), 1)
+        self.assertEqual(notifications[0].findtext("level"), "0")  # 4 = internal, never visible
+        self.assertEqual(notifications[0].findtext("default"), "true")
+        self.assertEqual(ET.parse(root / "addon.xml").getroot().get("version"), "0.5.4")
 
     def test_progress_from_exact_private_key(self):
         with patch.dict(sys.modules, {"xbmcgui": self.ui}):
