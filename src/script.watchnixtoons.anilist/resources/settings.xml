@@ -18,6 +18,21 @@
           <level>4</level><default/><constraints><allowempty>true</allowempty></constraints>
           <control type="edit" format="string"><hidden>true</hidden></control>
         </setting>
+        <setting id="auto_watched" type="boolean" label="Background AniList watched tick restore (beta)">
+          <level>4</level><default>false</default><control type="toggle"/>
+        </setting>
+        <setting id="private_sync" type="boolean" label="Private cross-device history and resume (beta)">
+          <level>4</level><default>false</default><control type="toggle"/>
+        </setting>
+        <setting id="private_repo" type="string" label="Private GitHub owner/repo">
+          <level>4</level><default/><control type="edit" format="string"/>
+        </setting>
+        <setting id="private_token" type="string" label="Private GitHub access token">
+          <level>4</level><default/><control type="edit" format="string"><hidden>true</hidden></control>
+        </setting>
+        <setting id="rewatch_episode" type="string" label="Explicit rewatch source key">
+          <level>4</level><default/><control type="edit" format="string"/>
+        </setting>
       </group>
     </category>
   </section>

@@ -5,6 +5,7 @@ Does not scrape streams, change playback, or write to WatchNixtoons2 data.
 import json
 import os
 import time
+import threading
 
 import xbmc
 import xbmcaddon
@@ -241,6 +242,14 @@ def run():
     log('Started (Kodi background service).')
     monitor = xbmc.Monitor()
     tracker = Tracker()
+    from auto_sync import BackgroundEngine
+    background = BackgroundEngine(ADDON, xbmc, xbmcvfs, PROFILE)
+    background_worker = None
+    def run_optional_background():
+        try:
+            background.tick(time.time(), tracker.player.isPlayingVideo())
+        except Exception as exc:
+            log('Optional background sync error: %s' % type(exc).__name__, xbmc.LOGWARNING)
     tracker.note('Service running', 'Waiting for WatchNixtoons2 watched episodes')
     while not monitor.abortRequested():
         try:
@@ -256,6 +265,13 @@ def run():
                 tracker.note('Service error', type(exc).__name__)
                 log('Unexpected tracker error: %s' % type(exc).__name__, xbmc.LOGERROR)
                 tracker.last_warn = time.time()
+        # Separate worker so GitHub/AniList outages cannot block the existing
+        # 2-second outgoing playback monitor. Never start overlapping workers.
+        if background_worker is None or not background_worker.is_alive():
+            if ADDON.getSetting('auto_watched') == 'true' or ADDON.getSetting('private_sync') == 'true':
+                background_worker = threading.Thread(target=run_optional_background,
+                                                     name='WNT2OptionalSync', daemon=True)
+                background_worker.start()
         if monitor.waitForAbort(2):
             break
     log('Stopped.')

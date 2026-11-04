@@ -1,0 +1,48 @@
+name: Background and resume regression tests
+on:
+  pull_request:
+  push:
+    branches: ['feature/background-resume-v0.5.0']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11','3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Complete Kodi regression suite
+        run: python -W error::ResourceWarning -m unittest discover -s tests -v
+      - name: Parse all Python modules and metadata
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          from xml.etree import ElementTree as ET
+          base=Path('src/script.watchnixtoons.anilist')
+          for path in base.rglob('*.py'):
+              ast.parse(path.read_text(encoding='utf-8'), filename=str(path))
+          addon=ET.parse(base/'addon.xml').getroot()
+          settings=ET.parse(base/'resources/settings.xml').getroot()
+          assert addon.attrib['id']=='script.watchnixtoons.anilist'
+          assert addon.attrib['version']=='0.5.0'
+          assert settings.get('version')=='1'
+          PY
+      - name: No public-repository viewing state or credentials
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          names=['client_secret','github_pat_','ghp_']
+          for p in Path('src/script.watchnixtoons.anilist').rglob('*.py'):
+              data=p.read_text()
+              assert 'token = "ghp_' not in data
+              assert 'https://raw.githubusercontent.com/' not in data or 'watchnixtoons' in data
+          PY
