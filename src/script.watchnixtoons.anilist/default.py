@@ -257,10 +257,10 @@ def run():
                                                      if v['key'] not in mappings}),
                 'View/change anime mappings (%s)' % len(mappings),
                 'Set watched threshold (%s%%)' % (ADDON.getSetting('threshold') or '85'),
-                'View diagnostics', 'Test AniList authorisation', 'Historical watched import (manual)', 'Exit'
+                'View diagnostics', 'Test AniList authorisation', 'Historical watched import (manual)', 'Restore ticks from AniList (manual)', 'Exit'
             ]
             selected = DIALOG.select(TITLE, choices)
-            if selected in (-1, 8):
+            if selected in (-1, 9):
                 return
             if selected == 0:
                 ADDON.setSetting('enabled', 'false' if enabled else 'true')
@@ -282,6 +282,9 @@ def run():
             elif selected == 7:
                 from historical_ui import run as history_import_run
                 history_import_run(choose_anime)
+            elif selected == 8:
+                from device_sync_ui import execute_sync
+                execute_sync(choose_anime)
             elif selected == 6:
                 if not token:
                     ok('Not connected. Open AniList account first.')
